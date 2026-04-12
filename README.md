@@ -33,7 +33,51 @@ pip install -r requirements.txt
 python run_pipeline.py --config configs/pipeline_config.json
 ```
 
-### With Custom Data
+### With Your Own Data
+
+The pipeline supports loading your own MIDI and FASTA datasets from any directory.
+
+#### 1. Setup Data Directories
+
+```bash
+# Create standard data directories
+python scan_datasets.py --setup --project-root /workspace
+```
+
+This creates:
+- `data/midi/` - Place your MIDI files here
+- `data/fasta/` - Place your FASTA files here
+
+#### 2. Add Your Data
+
+**MIDI Files:**
+- Download from any source (MuseScore, MIDI World, BitMidi, etc.)
+- Place in `data/midi/` or any subdirectory
+- Supported formats: `.mid`, `.midi`
+
+**FASTA Files:**
+- Download from NCBI, Ensembl, UCSC Genome Browser, UniProt, etc.
+- Place in `data/fasta/` or any subdirectory
+- Supported formats: `.fasta`, `.fa`, `.fna`, `.ffn`, `.faa`, `.frn`
+
+#### 3. Scan for Data
+
+```bash
+# Verify your files are detected
+python scan_datasets.py
+```
+
+#### 4. Run Pipeline
+
+```bash
+# Using your data in the standard directories
+python run_pipeline.py --config configs/pipeline_config.json
+
+# Or specify custom directories via config
+python run_pipeline.py --config configs/data_paths_config.json
+```
+
+### Command-Line Examples
 
 ```bash
 # Using custom biological sequences (FASTA format)
@@ -41,6 +85,9 @@ python run_pipeline.py --sequences data/sequences.fasta --midi-dir data/midi_fil
 
 # Using custom MIDI training data only
 python run_pipeline.py --midi-dir /path/to/midi/training/data
+
+# Scan specific directory for data
+python scan_datasets.py --path /path/to/your/data
 ```
 
 ## Configuration
