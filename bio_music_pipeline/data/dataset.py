@@ -45,6 +45,9 @@ class MIDIPreprocessor:
         self.token_to_idx = {t: i for i, t in enumerate(self.vocab)}
         self.idx_to_token = {i: t for i, t in enumerate(self.vocab)}
         self.vocab_size = len(self.vocab)
+        self.bos_token_id = self.token_to_idx["BOS"]
+        self.eos_token_id = self.token_to_idx["EOS"]
+        self.pad_token_id = self.token_to_idx["PAD"]
     
     def _build_vocab(self) -> List[str]:
         """Build token vocabulary."""
@@ -79,6 +82,15 @@ class MIDIPreprocessor:
     
     def get_pad_token(self) -> str:
         return "PAD"
+
+    def get_bos_token_id(self) -> int:
+        return self.bos_token_id
+
+    def get_eos_token_id(self) -> int:
+        return self.eos_token_id
+
+    def get_pad_token_id(self) -> int:
+        return self.pad_token_id
     
     def load_midi_file(self, filepath: str) -> Optional[mido.MidiFile]:
         """Load a MIDI file with error handling."""
@@ -188,15 +200,17 @@ class MIDIPreprocessor:
         if midi is None:
             return None
         
-        # Calculate duration
-        duration = sum(msg.time for msg in mido.merge_tracks(midi.tracks))
+        # Calculate duration in seconds using tempo map.
+        merged = mido.merge_tracks(midi.tracks)
         if midi.ticks_per_beat > 0:
-            # Estimate tempo (assume 120 BPM if not specified)
-            bpm = 120
-            seconds_per_tick = 60.0 / (bpm * midi.ticks_per_beat)
-            duration_sec = duration * seconds_per_tick
+            current_tempo = mido.bpm2tempo(120)  # default tempo if not specified
+            duration_sec = 0.0
+            for msg in merged:
+                duration_sec += mido.tick2second(msg.time, midi.ticks_per_beat, current_tempo)
+                if msg.type == 'set_tempo':
+                    current_tempo = msg.tempo
         else:
-            duration_sec = 0
+            duration_sec = 0.0
         
         # Check duration constraints
         if duration_sec < self.min_duration or duration_sec > self.max_duration:

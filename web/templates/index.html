@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioSonification - Music from DNA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="30" r="8" fill="#6366f1"/>
+                    <circle cx="50" cy="20" r="8" fill="#8b5cf6"/>
+                    <circle cx="80" cy="30" r="8" fill="#a78bfa"/>
+                    <circle cx="35" cy="50" r="8" fill="#6366f1"/>
+                    <circle cx="65" cy="50" r="8" fill="#8b5cf6"/>
+                    <circle cx="50" cy="70" r="8" fill="#a78bfa"/>
+                    <circle cx="20" cy="80" r="8" fill="#6366f1"/>
+                    <circle cx="80" cy="80" r="8" fill="#8b5cf6"/>
+                    <line x1="20" y1="30" x2="50" y2="20" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="50" y1="20" x2="80" y2="30" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="20" y1="30" x2="35" y2="50" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="50" y1="20" x2="65" y2="50" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="80" y1="30" x2="65" y2="50" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="35" y1="50" x2="50" y2="70" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="65" y1="50" x2="50" y2="70" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="35" y1="50" x2="20" y2="80" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="65" y1="50" x2="80" y2="80" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="50" y1="70" x2="20" y2="80" stroke="#c4b5fd" stroke-width="2"/>
+                    <line x1="50" y1="70" x2="80" y2="80" stroke="#c4b5fd" stroke-width="2"/>
+                </svg>
+                <h1>BioSonification</h1>
+            </div>
+            <p class="tagline">Transform biological sequences into unique music</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section card">
+                <h2>Input Your DNA Sequence</h2>
+                
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="paste">Paste Sequence</button>
+                    <button class="tab-btn" data-tab="upload">Upload File</button>
+                </div>
+
+                <!-- Paste Tab -->
+                <div class="tab-content active" id="paste-tab">
+                    <textarea 
+                        id="fasta-input" 
+                        placeholder="Paste your FASTA sequence here...
+
+Example:
+>BRCA1 gene fragment
+ATCGGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGC
+TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
+..."
+                        rows="8"
+                    ></textarea>
+                    <div class="info-text">
+                        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        Minimum 100 nucleotides. Accepts A, C, G, T only.
+                    </div>
+                </div>
+
+                <!-- Upload Tab -->
+                <div class="tab-content" id="upload-tab">
+                    <div class="file-upload-area" id="file-upload-area">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p>Drag & drop your FASTA file here</p>
+                        <p class="or-text">or</p>
+                        <label class="file-input-label">
+                            <input type="file" id="fasta-file" accept=".fasta,.fa,.fna,.ffn,.faa,.frn,.txt" class="hidden">
+                            <span class="btn btn-secondary">Choose File</span>
+                        </label>
+                        <p class="file-name" id="file-name"></p>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generate-btn" class="btn btn-primary btn-large">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18V5l12-2v13"/>
+                        <circle cx="6" cy="18" r="3"/>
+                        <circle cx="18" cy="16" r="3"/>
+                    </svg>
+                    Generate Music
+                </button>
+            </section>
+
+            <!-- Loading Section -->
+            <section class="loading-section card hidden" id="loading-section">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <h3>Generating your music...</h3>
+                    <p>Analyzing DNA sequence and composing music</p>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section class="error-section card hidden" id="error-section">
+                <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <h3>Generation Failed</h3>
+                <p id="error-message"></p>
+                <button id="retry-btn" class="btn btn-secondary">Try Again</button>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section card hidden" id="results-section">
+                <h2>
+                    <svg class="success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Music Generated Successfully!
+                </h2>
+
+                <!-- Audio Player -->
+                <div class="audio-player-section">
+                    <h3>Listen to Your Music</h3>
+                    <div id="audio-player-container">
+                        <audio id="audio-player" controls class="hidden">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <div id="audio-unavailable" class="audio-unavailable hidden">
+                            <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            <p>Audio playback requires a MIDI synthesizer.</p>
+                            <p class="install-hint">{{ install_instructions|default('Install fluidsynth or timidity to enable audio playback.') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Button -->
+                <a id="download-midi-btn" class="btn btn-primary btn-large" href="#" download>
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download MIDI File
+                </a>
+
+                <!-- Musical Parameters -->
+                <div class="params-section">
+                    <h3>Musical Parameters from Your DNA</h3>
+                    <div class="params-grid">
+                        <div class="param-card">
+                            <div class="param-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18V5l12-2v13"/>
+                                    <circle cx="6" cy="18" r="3"/>
+                                    <circle cx="18" cy="16" r="3"/>
+                                </svg>
+                            </div>
+                            <div class="param-value" id="param-tempo">-</div>
+                            <div class="param-name">Tempo (BPM)</div>
+                        </div>
+                        <div class="param-card">
+                            <div class="param-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M2 16l5-13h2l5 13H2z"/>
+                                    <path d="M5 10h8"/>
+                                </svg>
+                            </div>
+                            <div class="param-value" id="param-key">-</div>
+                            <div class="param-name">Key</div>
+                        </div>
+                        <div class="param-card">
+                            <div class="param-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2v20M2 12h20"/>
+                                </svg>
+                            </div>
+                            <div class="param-value" id="param-pitch-range">-</div>
+                            <div class="param-name">Pitch Range</div>
+                        </div>
+                        <div class="param-card">
+                            <div class="param-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                            </div>
+                            <div class="param-value" id="param-scale-type">-</div>
+                            <div class="param-name">Scale Type</div>
+                        </div>
+                        <div class="param-card">
+                            <div class="param-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5"/>
+                                    <path d="M2 12l10 5 10-5"/>
+                                </svg>
+                            </div>
+                            <div class="param-value" id="param-rhythm">-</div>
+                            <div class="param-name">Rhythm Complexity</div>
+                        </div>
+                        <div class="param-card">
+                            <div class="param-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </div>
+                            <div class="param-value" id="param-dynamic-range">-</div>
+                            <div class="param-name">Dynamic Range</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sequence Info -->
+                <div class="sequence-info">
+                    <p><strong>Sequence:</strong> <span id="seq-header">-</span></p>
+                    <p><strong>Length:</strong> <span id="seq-length">-</span> nucleotides</p>
+                </div>
+
+                <!-- Generate Another -->
+                <button id="generate-another-btn" class="btn btn-secondary">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    Generate Another
+                </button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>BioSonification — Transforming DNA into Music</p>
+            <p class="disclaimer">
+                Disclaimer: This system uses bio-vectors as structured conditioning signals. 
+                No causal relationship between genes and music is claimed or demonstrated.
+            </p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

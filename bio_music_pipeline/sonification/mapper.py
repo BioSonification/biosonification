@@ -51,6 +51,8 @@ class SonificationMapper:
         self.pitch_range = pitch_range
         self.key_mapping = key_mapping
         self.chord_complexity_levels = chord_complexity_levels
+        self.calibration = {}
+        self.calibration_fitted = False
         
         # Define musical keys in cycle of fifths order
         self.keys_cycle = [
@@ -68,6 +70,75 @@ class SonificationMapper:
         
         # Basic chord distributions by complexity level
         self.chord_distributions = self._generate_chord_distributions()
+
+    @staticmethod
+    def _normalize(value: float, min_value: float, max_value: float) -> float:
+        """Robust min-max normalization to [0, 1]."""
+        denom = max(max_value - min_value, 1e-8)
+        return float(np.clip((value - min_value) / denom, 0.0, 1.0))
+
+    def fit_calibration(self, bio_vectors: np.ndarray,
+                        lower_quantile: float = 0.05,
+                        upper_quantile: float = 0.95) -> Dict[str, object]:
+        """
+        Fit data-driven calibration ranges from a batch of bio-vectors.
+
+        This prevents collapse to a tiny subset of keys/tempi when raw features
+        occupy narrow numeric ranges.
+        """
+        if bio_vectors is None or len(bio_vectors) == 0:
+            self.calibration = {}
+            self.calibration_fitted = False
+            return self.calibration
+
+        vectors = np.asarray(bio_vectors, dtype=np.float64)
+        vectors = np.nan_to_num(vectors, nan=0.0, posinf=0.0, neginf=0.0)
+
+        nuc = vectors[:, :4] if vectors.shape[1] >= 4 else np.zeros((len(vectors), 4))
+        entropy = vectors[:, 4] if vectors.shape[1] > 4 else np.ones(len(vectors))
+        gc_skew = vectors[:, 5] if vectors.shape[1] > 5 else np.zeros(len(vectors))
+        at_skew = vectors[:, 6] if vectors.shape[1] > 6 else np.zeros(len(vectors))
+        gc_std = vectors[:, 92] if vectors.shape[1] > 92 else np.full(len(vectors), 0.1)
+        entropy_std = vectors[:, 94] if vectors.shape[1] > 94 else np.full(len(vectors), 0.1)
+
+        weights = np.array([0.0, 0.25, 0.5, 0.75], dtype=np.float64)
+        key_projection = np.sum(nuc * weights, axis=1)
+        quantile_grid = np.linspace(0.0, 1.0, len(self.keys_cycle) + 1)
+        key_edges = np.quantile(key_projection, quantile_grid[1:-1])
+
+        gc_content = nuc[:, 1] + nuc[:, 2]
+        gc_thresholds = np.quantile(gc_content, [0.2, 0.4, 0.6, 0.8]).tolist()
+        variability = (gc_std + entropy_std) / 2.0
+        chord_signal = vectors[:, :16].mean(axis=1) if vectors.shape[1] >= 16 else np.zeros(len(vectors))
+        combined_skew = (gc_skew + at_skew) / 2.0
+
+        entropy_min = float(np.quantile(entropy, lower_quantile))
+        entropy_max = float(np.quantile(entropy, upper_quantile))
+        var_min = float(np.quantile(variability, lower_quantile))
+        var_max = float(np.quantile(variability, upper_quantile))
+        chord_min = float(np.quantile(chord_signal, lower_quantile))
+        chord_max = float(np.quantile(chord_signal, upper_quantile))
+        skew_scale = float(np.quantile(np.abs(combined_skew), 0.95))
+
+        self.calibration = {
+            'key_bin_edges': [float(x) for x in key_edges],
+            'entropy_min': entropy_min,
+            'entropy_max': entropy_max,
+            'gc_thresholds': [float(x) for x in gc_thresholds],
+            'articulation_min': var_min,
+            'articulation_max': var_max,
+            'chord_signal_min': chord_min,
+            'chord_signal_max': chord_max,
+            'skew_scale': max(skew_scale, 1e-3),
+        }
+        self.calibration_fitted = True
+        return self.calibration
+
+    def get_calibration_summary(self) -> Dict[str, object]:
+        """Return calibration metadata for reporting."""
+        if not self.calibration_fitted:
+            return {'calibration_fitted': False}
+        return {'calibration_fitted': True, **self.calibration}
     
     def _generate_chord_distributions(self) -> Dict[int, Dict[str, float]]:
         """Generate chord probability distributions for different complexity levels."""
@@ -121,16 +192,24 @@ class SonificationMapper:
         # A=0, C=1, G=2, T=3 mapping to cycle position
         weights = np.array([0.0, 0.25, 0.5, 0.75])
         position = np.sum(nuc_freqs * weights)
-        
-        # Normalize to cycle length
-        normalized_pos = (position % 1.0) * len(self.keys_cycle)
-        key_index = int(normalized_pos) % len(self.keys_cycle)
+
+        if self.calibration_fitted and self.calibration.get('key_bin_edges'):
+            edges = np.asarray(self.calibration['key_bin_edges'], dtype=np.float64)
+            key_index = int(np.searchsorted(edges, position, side='right'))
+            key_index = int(np.clip(key_index, 0, len(self.keys_cycle) - 1))
+        else:
+            # Fallback: map expected [0, 0.75] range to full key cycle.
+            normalized = np.clip(position / 0.75, 0.0, 1.0)
+            key_index = int(np.clip(round(normalized * (len(self.keys_cycle) - 1)), 0, len(self.keys_cycle) - 1))
         
         return self.keys_cycle[key_index]
     
     def map_entropy_to_tempo(self, entropy: float, min_entropy: float = 0.0, 
                              max_entropy: float = 2.0) -> float:
         """Map Shannon entropy to tempo."""
+        if self.calibration_fitted:
+            min_entropy = float(self.calibration.get('entropy_min', min_entropy))
+            max_entropy = float(self.calibration.get('entropy_max', max_entropy))
         # Normalize entropy to [0, 1]
         norm_entropy = np.clip((entropy - min_entropy) / (max_entropy - min_entropy), 0.0, 1.0)
         
@@ -142,9 +221,12 @@ class SonificationMapper:
         """Map sequence skew statistics to pitch range."""
         # Combine skews
         combined_skew = (gc_skew + at_skew) / 2.0
-        
-        # Clamp to [-1, 1]
-        combined_skew = np.clip(combined_skew, -1.0, 1.0)
+        if self.calibration_fitted:
+            skew_scale = float(self.calibration.get('skew_scale', 1.0))
+            combined_skew = np.clip(combined_skew / max(skew_scale, 1e-6), -1.0, 1.0)
+        else:
+            # Clamp to [-1, 1]
+            combined_skew = np.clip(combined_skew, -1.0, 1.0)
         
         # Map to pitch range shift
         base_min, base_max = self.pitch_range
@@ -183,14 +265,19 @@ class SonificationMapper:
     def map_gc_content_to_scale_type(self, gc_content: float) -> str:
         """Map GC content to scale type."""
         gc_content = np.clip(gc_content, 0.0, 1.0)
-        
-        if gc_content < 0.35:
+
+        if self.calibration_fitted and self.calibration.get('gc_thresholds'):
+            t1, t2, t3, t4 = self.calibration['gc_thresholds']
+        else:
+            t1, t2, t3, t4 = 0.35, 0.45, 0.55, 0.65
+
+        if gc_content < t1:
             return "minor"
-        elif gc_content < 0.45:
+        elif gc_content < t2:
             return "dorian"
-        elif gc_content < 0.55:
+        elif gc_content < t3:
             return "major"
-        elif gc_content < 0.65:
+        elif gc_content < t4:
             return "mixolydian"
         else:
             return "lydian"
@@ -199,16 +286,26 @@ class SonificationMapper:
         """Map variability in windowed statistics to articulation density."""
         # Higher variability -> more varied articulation
         variability = (gc_std + entropy_std) / 2.0
-        density = np.clip(variability * 2.0, 0.0, 1.0)
+        if self.calibration_fitted:
+            min_var = float(self.calibration.get('articulation_min', 0.0))
+            max_var = float(self.calibration.get('articulation_max', 0.5))
+            density = self._normalize(variability, min_var, max_var)
+        else:
+            density = np.clip(variability * 2.0, 0.0, 1.0)
         return float(density)
     
     def map_features_to_chord_distribution(self, bio_vector: np.ndarray) -> Dict[str, float]:
         """Map bio-vector features to chord distribution."""
         # Use first few dimensions to determine complexity level
         complexity_signal = np.mean(bio_vector[:16]) if len(bio_vector) >= 16 else 0.0
-        
+
         # Normalize to complexity levels
-        normalized = (complexity_signal + 1.0) / 2.0  # Assume centered features
+        if self.calibration_fitted:
+            min_signal = float(self.calibration.get('chord_signal_min', -1.0))
+            max_signal = float(self.calibration.get('chord_signal_max', 1.0))
+            normalized = self._normalize(complexity_signal, min_signal, max_signal)
+        else:
+            normalized = (complexity_signal + 1.0) / 2.0  # Assume centered features
         level = int(np.clip(normalized * self.chord_complexity_levels, 0, self.chord_complexity_levels - 1)) + 1
         
         return self.chord_distributions.get(level, self.chord_distributions[3])
@@ -237,9 +334,9 @@ class SonificationMapper:
         # K-mer distributions start at index 7
         kmer_1 = bio_vector[7:11] if len(bio_vector) >= 11 else np.ones(4) / 4
         
-        # Windowed stats (approximate positions)
-        gc_std = bio_vector[-4] if len(bio_vector) > 4 else 0.1
-        entropy_std = bio_vector[-3] if len(bio_vector) > 3 else 0.1
+        # Windowed stats (fixed positions from BioVectorExtractor ordering)
+        gc_std = bio_vector[92] if len(bio_vector) > 92 else 0.1
+        entropy_std = bio_vector[94] if len(bio_vector) > 94 else 0.1
         
         # Compute GC content from nucleotide frequencies
         gc_content = nuc_freqs[1] + nuc_freqs[2] if len(nuc_freqs) >= 3 else 0.5
@@ -280,7 +377,11 @@ class SonificationMapper:
         key_onehot[key_idx] = 1.0
         
         # Normalize tempo
-        tempo_norm = (musical_params.tempo - self.tempo_range[0]) / (self.tempo_range[1] - self.tempo_range[0])
+        tempo_norm = np.clip(
+            (musical_params.tempo - self.tempo_range[0]) / (self.tempo_range[1] - self.tempo_range[0]),
+            0.0,
+            1.0
+        )
         
         # Normalize pitch range
         pitch_min_norm = musical_params.pitch_range[0] / 127.0
@@ -322,6 +423,7 @@ def apply_sonification_rules(bio_vectors: np.ndarray) -> np.ndarray:
         Array of conditioning vectors of shape (n_samples, conditioning_dim)
     """
     mapper = SonificationMapper()
+    mapper.fit_calibration(bio_vectors)
     conditioning_vectors = []
     
     for bio_vec in bio_vectors:

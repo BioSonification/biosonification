@@ -234,32 +234,56 @@ class BioVectorExtractor:
         Returns:
             Fixed-dimensional bio-vector
         """
-        # Concatenate all features
-        feature_list = []
-        for key in sorted(features.keys()):
-            feature_list.append(features[key].flatten())
-        
-        concatenated = np.concatenate(feature_list)
-        
-        # If already correct dimension, return
-        if len(concatenated) == target_dim:
-            return concatenated
-        
-        # Pad or truncate to target dimension
-        if len(concatenated) < target_dim:
-            padded = np.zeros(target_dim)
-            padded[:len(concatenated)] = concatenated
-            return padded
+        # Fixed feature order to keep indices stable across mapping/ablation code.
+        ordered_keys = [
+            'nuc_freqs',
+            'entropy',
+            'gc_skew',
+            'at_skew',
+            'kmer_1',
+            'kmer_2',
+            'kmer_3',
+            'gc_window_mean',
+            'gc_window_std',
+            'entropy_window_mean',
+            'entropy_window_std',
+        ]
+
+        core_parts = []
+        for key in ordered_keys:
+            value = features.get(key)
+            if value is None:
+                continue
+            core_parts.append(value.flatten())
+
+        if core_parts:
+            core = np.concatenate(core_parts)
         else:
-            # Truncate and add summary statistics
-            truncated = concatenated[:target_dim - 4]
-            summary_stats = np.array([
-                concatenated.mean(),
-                concatenated.std(),
-                concatenated.min(),
-                concatenated.max()
-            ])
-            return np.concatenate([truncated, summary_stats])
+            core = np.zeros(0, dtype=np.float32)
+
+        # Reserve last 4 dims for summary statistics to match ablation indices.
+        main_dim = max(target_dim - 4, 1)
+        vector = np.zeros(main_dim, dtype=np.float32)
+        copy_len = min(len(core), main_dim)
+        if copy_len > 0:
+            vector[:copy_len] = core[:copy_len]
+
+        source_for_stats = core if len(core) > 0 else np.zeros(1, dtype=np.float32)
+        summary_stats = np.array([
+            source_for_stats.mean(),
+            source_for_stats.std(),
+            source_for_stats.min(),
+            source_for_stats.max()
+        ], dtype=np.float32)
+
+        result = np.concatenate([vector, summary_stats])
+        if len(result) > target_dim:
+            result = result[:target_dim]
+        elif len(result) < target_dim:
+            padded = np.zeros(target_dim, dtype=np.float32)
+            padded[:len(result)] = result
+            result = padded
+        return result
     
     def process_file(self, filepath: str, target_dim: int = 128) -> List[Tuple[str, np.ndarray]]:
         """

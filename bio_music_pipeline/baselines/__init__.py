@@ -5,6 +5,7 @@ from .generators import (
     MarkovBaseline,
     UnconditionalTransformer,
     RuleBasedGenerator,
+    RandomVectorControl,
     create_baselines
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     'MarkovBaseline',
     'UnconditionalTransformer',
     'RuleBasedGenerator',
+    'RandomVectorControl',
     'create_baselines'
 ]

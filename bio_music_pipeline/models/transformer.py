@@ -214,6 +214,9 @@ class BioConditionedTransformerDecoder(nn.Module):
                  n_layers: int = 6,
                  max_seq_len: int = 512,
                  bio_vector_dim: int = 128,
+                 bos_token_id: int = 0,
+                 eos_token_id: int = 1,
+                 pad_token_id: int = 2,
                  dropout: float = 0.1,
                  gumbel_temp_init: float = 1.0,
                  gumbel_temp_min: float = 0.1,
@@ -237,13 +240,16 @@ class BioConditionedTransformerDecoder(nn.Module):
         
         self.vocab_size = vocab_size
         self.d_model = d_model
+        self.bos_token_id = bos_token_id
+        self.eos_token_id = eos_token_id
+        self.pad_token_id = pad_token_id
         
         # Embeddings
         self.token_embedding = nn.Embedding(vocab_size, d_model)
         self.positional_encoding = PositionalEncoding(d_model, max_seq_len, dropout)
         
-        # Transformer decoder layers
-        decoder_layer = nn.TransformerDecoderLayer(
+        # Transformer encoder layers (used as decoder with causal mask)
+        encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=n_heads,
             dim_feedforward=d_model * 4,
@@ -251,7 +257,7 @@ class BioConditionedTransformerDecoder(nn.Module):
             activation='gelu',
             batch_first=False
         )
-        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=n_layers)
+        self.transformer_decoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
         
         # Bio-conditioning
         self.bio_conditioning = BioConditioningModule(bio_vector_dim, d_model)
@@ -326,9 +332,8 @@ class BioConditionedTransformerDecoder(nn.Module):
         }
         
         if return_aux_logits:
-            # Compute auxiliary LM logits (gradients flow through frozen module)
-            with torch.no_grad():
-                aux_logits = self.auxiliary_lm(hidden)
+            # Compute auxiliary LM logits; weights are frozen, but gradients must pass through hidden.
+            aux_logits = self.auxiliary_lm(hidden)
             result['aux_logits'] = aux_logits
         
         return result
@@ -365,11 +370,11 @@ class BioConditionedTransformerDecoder(nn.Module):
         target_flat = target_tokens.reshape(-1)
         
         # Cross-entropy loss
-        ce_loss = F.cross_entropy(logits_flat, target_flat, ignore_index=-1)
+        ce_loss = F.cross_entropy(logits_flat, target_flat, ignore_index=self.pad_token_id)
         
         # Auxiliary LM loss (gradients flow through frozen module)
         aux_logits_flat = aux_logits.view(-1, self.vocab_size)
-        aux_loss = F.cross_entropy(aux_logits_flat, target_flat, ignore_index=-1)
+        aux_loss = F.cross_entropy(aux_logits_flat, target_flat, ignore_index=self.pad_token_id)
         
         # Composite loss
         total_loss = ce_loss + aux_loss_weight * aux_loss
@@ -386,8 +391,9 @@ class BioConditionedTransformerDecoder(nn.Module):
                  max_len: int = 512,
                  temperature: float = 1.0,
                  use_gumbel: bool = True,
-                 bos_token_id: int = 0,
-                 eos_token_id: int = 1) -> torch.Tensor:
+                 min_len: int = 32,
+                 bos_token_id: Optional[int] = None,
+                 eos_token_id: Optional[int] = None) -> torch.Tensor:
         """
         Generate token sequences conditioned on bio-vectors.
         
@@ -396,6 +402,7 @@ class BioConditionedTransformerDecoder(nn.Module):
             max_len: Maximum generation length
             temperature: Sampling temperature
             use_gumbel: Whether to use Gumbel-Softmax sampling
+            min_len: Minimum generation length before EOS is allowed
             bos_token_id: Beginning of sequence token ID
             eos_token_id: End of sequence token ID
             
@@ -404,6 +411,12 @@ class BioConditionedTransformerDecoder(nn.Module):
         """
         batch_size = bio_vectors.size(0)
         device = bio_vectors.device
+
+        if bos_token_id is None:
+            bos_token_id = self.bos_token_id
+        if eos_token_id is None:
+            eos_token_id = self.eos_token_id
+        min_len = int(max(2, min(min_len, max_len - 1)))
         
         # Start with BOS token
         tokens = torch.full((max_len, batch_size), bos_token_id, dtype=torch.long, device=device)
@@ -423,6 +436,10 @@ class BioConditionedTransformerDecoder(nn.Module):
             
             # Get logits for next token
             next_token_logits = logits[-1, :, :] / temperature
+
+            # Prevent early EOS to reduce trivially short generations.
+            if i + 1 < min_len:
+                next_token_logits[:, eos_token_id] = -1e9
             
             if use_gumbel and self.training:
                 # Use Gumbel-Softmax for differentiable sampling
@@ -452,24 +469,34 @@ class BioConditionedTransformerDecoder(nn.Module):
 def create_bio_music_model(config: Dict) -> BioConditionedTransformerDecoder:
     """
     Create bio-conditioned transformer model from config dictionary.
-    
+
     Args:
         config: Model configuration dictionary
-        
+
     Returns:
         Initialized BioConditionedTransformerDecoder
     """
+    vocab_size = config.get('vocab_size')
+    if vocab_size is None:
+        raise ValueError(
+            "vocab_size must be provided in config. "
+            "It should match the dataset's preprocessor.vocab_size."
+        )
+
     model = BioConditionedTransformerDecoder(
-        vocab_size=config.get('vocab_size', 512),
+        vocab_size=vocab_size,
         d_model=config.get('d_model', 256),
         n_heads=config.get('n_heads', 8),
         n_layers=config.get('n_layers', 6),
         max_seq_len=config.get('max_seq_len', 512),
         bio_vector_dim=config.get('bio_vector_dim', 128),
+        bos_token_id=config.get('bos_token_id', 0),
+        eos_token_id=config.get('eos_token_id', 1),
+        pad_token_id=config.get('pad_token_id', 2),
         dropout=config.get('dropout', 0.1),
         gumbel_temp_init=config.get('gumbel_temp_init', 1.0),
         gumbel_temp_min=config.get('gumbel_temp_min', 0.1),
         gumbel_decay=config.get('gumbel_decay', 0.9999)
     )
-    
+
     return model

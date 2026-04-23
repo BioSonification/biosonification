@@ -1,0 +1,343 @@
+{"kind":"deck","id":"biosonification-minimal-conference","slideCount":8,"slideSize":{"width":1280,"height":720}}
+{"kind":"slide","slide":1,"id":"rze3yb"}
+{"kind":"slide","slide":2,"id":"vu3h2a"}
+{"kind":"slide","slide":3,"id":"g6xws4"}
+{"kind":"slide","slide":4,"id":"bcd9v7"}
+{"kind":"slide","slide":5,"id":"c25lj7"}
+{"kind":"slide","slide":6,"id":"6nx9yr"}
+{"kind":"slide","slide":7,"id":"gpeb2z"}
+{"kind":"slide","slide":8,"id":"hbbb4o"}
+{"kind":"shape","slide":1,"id":"2","role":"cover kicker","shapeType":"rect","bbox":[72,54,220,18]}
+{"kind":"textbox","slide":1,"id":"2","role":"cover kicker","text":"Научная конференция","textPreview":"Научная конференция","textChars":19,"textLines":1,"bbox":[72,54,220,18]}
+{"kind":"shape","slide":1,"id":"3","role":"cover title","shapeType":"rect","bbox":[72,102,640,58]}
+{"kind":"textbox","slide":1,"id":"3","role":"cover title","text":"BioSonification","textPreview":"BioSonification","textChars":15,"textLines":1,"bbox":[72,102,640,58]}
+{"kind":"shape","slide":1,"id":"4","role":"cover subtitle","shapeType":"rect","bbox":[72,176,780,72]}
+{"kind":"textbox","slide":1,"id":"4","role":"cover subtitle","text":"Биосонификация: генерация символической музыки\nпо признакам биологических последовательностей","textPreview":"Биосонификация: генерация символической музыки | по признакам биологических последовательностей","textChars":93,"textLines":2,"bbox":[72,176,780,72]}
+{"kind":"shape","slide":1,"id":"5","role":"cover rule","shapeType":"rect","bbox":[72,272,1136,1]}
+{"kind":"shape","slide":1,"id":"6","role":"cover thesis","shapeType":"rect","bbox":[72,304,460,60]}
+{"kind":"textbox","slide":1,"id":"6","role":"cover thesis","text":"Воспроизводимый конвейер (pipeline):\nFASTA -> биовектор -> Transformer (трансформер) -> MIDI","textPreview":"Воспроизводимый конвейер (pipeline): | FASTA -> биовектор -> Transformer (трансформер) -> MIDI","textChars":92,"textLines":2,"bbox":[72,304,460,60]}
+{"kind":"shape","slide":1,"id":"7","role":"metric panel: FASTA-последовательностей","shapeType":"rect","bbox":[72,432,268,92]}
+{"kind":"shape","slide":1,"id":"8","role":"metric accent: FASTA-последовательностей","shapeType":"rect","bbox":[72,432,268,6]}
+{"kind":"shape","slide":1,"id":"9","role":"metric value","shapeType":"rect","bbox":[88,450,236,32]}
+{"kind":"textbox","slide":1,"id":"9","role":"metric value","text":"2000","textPreview":"2000","textChars":4,"textLines":1,"bbox":[88,450,236,32]}
+{"kind":"shape","slide":1,"id":"10","role":"metric label","shapeType":"rect","bbox":[88,488,236,24]}
+{"kind":"textbox","slide":1,"id":"10","role":"metric label","text":"FASTA-последовательностей","textPreview":"FASTA-последовательностей","textChars":25,"textLines":1,"bbox":[88,488,236,24]}
+{"kind":"shape","slide":1,"id":"11","role":"metric panel: пар MIDI↔биовектор","shapeType":"rect","bbox":[356,432,268,92]}
+{"kind":"shape","slide":1,"id":"12","role":"metric accent: пар MIDI↔биовектор","shapeType":"rect","bbox":[356,432,268,6]}
+{"kind":"shape","slide":1,"id":"13","role":"metric value","shapeType":"rect","bbox":[372,450,236,32]}
+{"kind":"textbox","slide":1,"id":"13","role":"metric value","text":"434","textPreview":"434","textChars":3,"textLines":1,"bbox":[372,450,236,32]}
+{"kind":"shape","slide":1,"id":"14","role":"metric label","shapeType":"rect","bbox":[372,488,236,24]}
+{"kind":"textbox","slide":1,"id":"14","role":"metric label","text":"пар MIDI↔биовектор","textPreview":"пар MIDI↔биовектор","textChars":18,"textLines":1,"bbox":[372,488,236,24]}
+{"kind":"shape","slide":1,"id":"15","role":"metric panel: подтверждена","shapeType":"rect","bbox":[640,432,268,92]}
+{"kind":"shape","slide":1,"id":"16","role":"metric accent: подтверждена","shapeType":"rect","bbox":[640,432,268,6]}
+{"kind":"shape","slide":1,"id":"17","role":"metric value","shapeType":"rect","bbox":[656,450,236,32]}
+{"kind":"textbox","slide":1,"id":"17","role":"metric value","text":"H1","textPreview":"H1","textChars":2,"textLines":1,"bbox":[656,450,236,32]}
+{"kind":"shape","slide":1,"id":"18","role":"metric label","shapeType":"rect","bbox":[656,488,236,24]}
+{"kind":"textbox","slide":1,"id":"18","role":"metric label","text":"подтверждена","textPreview":"подтверждена","textChars":12,"textLines":1,"bbox":[656,488,236,24]}
+{"kind":"shape","slide":1,"id":"19","role":"metric panel: не подтверждена","shapeType":"rect","bbox":[924,432,268,92]}
+{"kind":"shape","slide":1,"id":"20","role":"metric accent: не подтверждена","shapeType":"rect","bbox":[924,432,268,6]}
+{"kind":"shape","slide":1,"id":"21","role":"metric value","shapeType":"rect","bbox":[940,450,236,32]}
+{"kind":"textbox","slide":1,"id":"21","role":"metric value","text":"H2","textPreview":"H2","textChars":2,"textLines":1,"bbox":[940,450,236,32]}
+{"kind":"shape","slide":1,"id":"22","role":"metric label","shapeType":"rect","bbox":[940,488,236,24]}
+{"kind":"textbox","slide":1,"id":"22","role":"metric label","text":"не подтверждена","textPreview":"не подтверждена","textChars":15,"textLines":1,"bbox":[940,488,236,24]}
+{"kind":"shape","slide":1,"id":"23","role":"cover note","shapeType":"rect","bbox":[72,620,980,22]}
+{"kind":"textbox","slide":1,"id":"23","role":"cover note","text":"Проект оценивает биопризнаки как структурный управляющий сигнал, а не как причинное объяснение музыки.","textPreview":"Проект оценивает биопризнаки как структурный управляющий сигнал, а не как причинное объяснение музыки.","textChars":102,"textLines":1,"bbox":[72,620,980,22]}
+{"kind":"shape","slide":1,"id":"24","role":"cover number","shapeType":"rect","bbox":[1100,620,92,22]}
+{"kind":"textbox","slide":1,"id":"24","role":"cover number","text":"01 / 08","textPreview":"01 / 08","textChars":7,"textLines":1,"bbox":[1100,620,92,22]}
+{"kind":"shape","slide":2,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":2,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":2,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":2,"id":"3","role":"slide number","text":"02 / 08","textPreview":"02 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":2,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":2,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":2,"id":"5","role":"title","text":"Почему это интересно","textPreview":"Почему это интересно","textChars":20,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":2,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":2,"id":"6","role":"subtitle","text":"Сонификация позволяет посмотреть на биоданные ушами и добавить к визуальному анализу еще один канал восприятия.","textPreview":"Сонификация позволяет посмотреть на биоданные ушами и добавить к визуальному анализу еще один канал восприятия.","textChars":111,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":2,"id":"7","role":"text panel: Идея","shapeType":"rect","bbox":[72,244,452,262]}
+{"kind":"shape","slide":2,"id":"8","role":"text panel accent: Идея","shapeType":"rect","bbox":[72,244,6,262]}
+{"kind":"shape","slide":2,"id":"9","role":"panel title","shapeType":"rect","bbox":[90,260,416,22]}
+{"kind":"textbox","slide":2,"id":"9","role":"panel title","text":"Идея","textPreview":"Идея","textChars":4,"textLines":1,"bbox":[90,260,416,22]}
+{"kind":"shape","slide":2,"id":"10","role":"panel body","shapeType":"rect","bbox":[90,296,416,192]}
+{"kind":"textbox","slide":2,"id":"10","role":"panel body","text":"Биоданные можно не только читать и визуализировать, но и слушать.\nЕсли переводить их структуру в музыку, появляется новый способ замечать форму, ритм, повторяемость и вариативность последовательностей.","textPreview":"Биоданные можно не только читать и визуализировать, но и слушать. | Если переводить их структуру в музыку, появляется новый способ замечать форму, ритм, повторяемость и вариативнос","textChars":201,"textLines":2,"bbox":[90,296,416,192]}
+{"kind":"shape","slide":2,"id":"11","role":"text panel: Слух как дополнительный канал","shapeType":"rect","bbox":[548,244,660,122]}
+{"kind":"shape","slide":2,"id":"12","role":"text panel accent: Слух как дополнительный канал","shapeType":"rect","bbox":[548,244,6,122]}
+{"kind":"shape","slide":2,"id":"13","role":"panel title","shapeType":"rect","bbox":[566,260,624,22]}
+{"kind":"textbox","slide":2,"id":"13","role":"panel title","text":"Слух как дополнительный канал","textPreview":"Слух как дополнительный канал","textChars":29,"textLines":1,"bbox":[566,260,624,22]}
+{"kind":"shape","slide":2,"id":"14","role":"panel body","shapeType":"rect","bbox":[566,296,624,52]}
+{"kind":"textbox","slide":2,"id":"14","role":"panel body","text":"Человек может улавливать паттерны, контрасты и повторы на слух иначе, чем на графике. Это не замена визуализации, а ее дополнение.","textPreview":"Человек может улавливать паттерны, контрасты и повторы на слух иначе, чем на графике. Это не замена визуализации, а ее дополнение.","textChars":130,"textLines":1,"bbox":[566,296,624,52]}
+{"kind":"shape","slide":2,"id":"15","role":"text panel: Понятно даже неспециалисту","shapeType":"rect","bbox":[548,384,660,122]}
+{"kind":"shape","slide":2,"id":"16","role":"text panel accent: Понятно даже неспециалисту","shapeType":"rect","bbox":[548,384,6,122]}
+{"kind":"shape","slide":2,"id":"17","role":"panel title","shapeType":"rect","bbox":[566,400,624,22]}
+{"kind":"textbox","slide":2,"id":"17","role":"panel title","text":"Понятно даже неспециалисту","textPreview":"Понятно даже неспециалисту","textChars":26,"textLines":1,"bbox":[566,400,624,22]}
+{"kind":"shape","slide":2,"id":"18","role":"panel body","shapeType":"rect","bbox":[566,436,624,52]}
+{"kind":"textbox","slide":2,"id":"18","role":"panel body","text":"Человек без подготовки в биоинформатике через сонификацию тоже может почувствовать различия между последовательностями и получить интуитивное представление об их устройстве.","textPreview":"Человек без подготовки в биоинформатике через сонификацию тоже может почувствовать различия между последовательностями и получить интуитивное представление об их устройстве.","textChars":173,"textLines":1,"bbox":[566,436,624,52]}
+{"kind":"shape","slide":2,"id":"19","role":"text panel: Почему это перспективно","shapeType":"rect","bbox":[72,542,1136,88]}
+{"kind":"shape","slide":2,"id":"20","role":"text panel accent: Почему это перспективно","shapeType":"rect","bbox":[72,542,6,88]}
+{"kind":"shape","slide":2,"id":"21","role":"panel title","shapeType":"rect","bbox":[90,558,1100,22]}
+{"kind":"textbox","slide":2,"id":"21","role":"panel title","text":"Почему это перспективно","textPreview":"Почему это перспективно","textChars":23,"textLines":1,"bbox":[90,558,1100,22]}
+{"kind":"shape","slide":2,"id":"22","role":"panel body","shapeType":"rect","bbox":[90,582,1100,36]}
+{"kind":"textbox","slide":2,"id":"22","role":"panel body","text":"Сонификация может быть полезна для exploratory analysis, образования и научной коммуникации: она делает сложные данные ближе к человеческому восприятию.","textPreview":"Сонификация может быть полезна для exploratory analysis, образования и научной коммуникации: она делает сложные данные ближе к человеческому восприятию.","textChars":152,"textLines":1,"bbox":[90,582,1100,36]}
+{"kind":"shape","slide":3,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":3,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":3,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":3,"id":"3","role":"slide number","text":"03 / 08","textPreview":"03 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":3,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":3,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":3,"id":"5","role":"title","text":"Пайплайн","textPreview":"Пайплайн","textChars":8,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":3,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":3,"id":"6","role":"subtitle","text":"Чтобы биоданные можно было не только видеть, но и осмысленно слушать, проект проходит путь от последовательности к музыке и затем к статистической проверке.","textPreview":"Чтобы биоданные можно было не только видеть, но и осмысленно слушать, проект проходит путь от последовательности к музыке и затем к статистической проверке.","textChars":156,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":3,"id":"7","role":"stage 1","shapeType":"rect","bbox":[72,232,1136,86]}
+{"kind":"shape","slide":3,"id":"8","role":"stage number","shapeType":"rect","bbox":[90,246,52,44]}
+{"kind":"textbox","slide":3,"id":"8","role":"stage number","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[90,246,52,44]}
+{"kind":"shape","slide":3,"id":"9","role":"stage divider","shapeType":"rect","bbox":[158,250,1,50]}
+{"kind":"shape","slide":3,"id":"10","role":"stage title","shapeType":"rect","bbox":[180,248,1008,24]}
+{"kind":"textbox","slide":3,"id":"10","role":"stage title","text":"FASTA -> биовектор 128D","textPreview":"FASTA -> биовектор 128D","textChars":23,"textLines":1,"bbox":[180,248,1008,24]}
+{"kind":"shape","slide":3,"id":"11","role":"stage body","shapeType":"rect","bbox":[180,280,1008,24]}
+{"kind":"textbox","slide":3,"id":"11","role":"stage body","text":"Последовательность очищается до A/C/G/T. Затем считаются частоты нуклеотидов, энтропия Шеннона, skew-метрики и k-mer признаки.","textPreview":"Последовательность очищается до A/C/G/T. Затем считаются частоты нуклеотидов, энтропия Шеннона, skew-метрики и k-mer признаки.","textChars":126,"textLines":1,"bbox":[180,280,1008,24]}
+{"kind":"shape","slide":3,"id":"12","role":"stage 2","shapeType":"rect","bbox":[72,330,1136,86]}
+{"kind":"shape","slide":3,"id":"13","role":"stage number","shapeType":"rect","bbox":[90,344,52,44]}
+{"kind":"textbox","slide":3,"id":"13","role":"stage number","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[90,344,52,44]}
+{"kind":"shape","slide":3,"id":"14","role":"stage divider","shapeType":"rect","bbox":[158,348,1,50]}
+{"kind":"shape","slide":3,"id":"15","role":"stage title","shapeType":"rect","bbox":[180,346,1008,24]}
+{"kind":"textbox","slide":3,"id":"15","role":"stage title","text":"Детерминированная сонификация -> управляющий вектор (conditioning) 24D","textPreview":"Детерминированная сонификация -> управляющий вектор (conditioning) 24D","textChars":70,"textLines":1,"bbox":[180,346,1008,24]}
+{"kind":"shape","slide":3,"id":"16","role":"stage body","shapeType":"rect","bbox":[180,378,1008,24]}
+{"kind":"textbox","slide":3,"id":"16","role":"stage body","text":"Биопризнаки переводятся в музыкальные параметры: тональность, темп, диапазон высот, ритм, лад и артикуляцию.","textPreview":"Биопризнаки переводятся в музыкальные параметры: тональность, темп, диапазон высот, ритм, лад и артикуляцию.","textChars":108,"textLines":1,"bbox":[180,378,1008,24]}
+{"kind":"shape","slide":3,"id":"17","role":"stage 3","shapeType":"rect","bbox":[72,428,1136,86]}
+{"kind":"shape","slide":3,"id":"18","role":"stage number","shapeType":"rect","bbox":[90,442,52,44]}
+{"kind":"textbox","slide":3,"id":"18","role":"stage number","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[90,442,52,44]}
+{"kind":"shape","slide":3,"id":"19","role":"stage divider","shapeType":"rect","bbox":[158,446,1,50]}
+{"kind":"shape","slide":3,"id":"20","role":"stage title","shapeType":"rect","bbox":[180,444,1008,24]}
+{"kind":"textbox","slide":3,"id":"20","role":"stage title","text":"Парный датасет (paired dataset)","textPreview":"Парный датасет (paired dataset)","textChars":31,"textLines":1,"bbox":[180,444,1008,24]}
+{"kind":"shape","slide":3,"id":"21","role":"stage body","shapeType":"rect","bbox":[180,476,1008,24]}
+{"kind":"textbox","slide":3,"id":"21","role":"stage body","text":"434 пары MIDI↔биовектор, разбиение 303 / 65 / 66 и контроль утечки данных. Это делает сравнение честным и воспроизводимым.","textPreview":"434 пары MIDI↔биовектор, разбиение 303 / 65 / 66 и контроль утечки данных. Это делает сравнение честным и воспроизводимым.","textChars":122,"textLines":1,"bbox":[180,476,1008,24]}
+{"kind":"shape","slide":3,"id":"22","role":"stage 4","shapeType":"rect","bbox":[72,526,1136,86]}
+{"kind":"shape","slide":3,"id":"23","role":"stage number","shapeType":"rect","bbox":[90,540,52,44]}
+{"kind":"textbox","slide":3,"id":"23","role":"stage number","text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[90,540,52,44]}
+{"kind":"shape","slide":3,"id":"24","role":"stage divider","shapeType":"rect","bbox":[158,544,1,50]}
+{"kind":"shape","slide":3,"id":"25","role":"stage title","shapeType":"rect","bbox":[180,542,1008,24]}
+{"kind":"textbox","slide":3,"id":"25","role":"stage title","text":"Transformer (трансформер) с биоуправлением (bio-conditioning)","textPreview":"Transformer (трансформер) с биоуправлением (bio-conditioning)","textChars":61,"textLines":1,"bbox":[180,542,1008,24]}
+{"kind":"shape","slide":3,"id":"26","role":"stage body","shapeType":"rect","bbox":[180,574,1008,24]}
+{"kind":"textbox","slide":3,"id":"26","role":"stage body","text":"Модель учится продолжать MIDI-последовательность, используя биовектор как внешний управляющий сигнал.","textPreview":"Модель учится продолжать MIDI-последовательность, используя биовектор как внешний управляющий сигнал.","textChars":101,"textLines":1,"bbox":[180,574,1008,24]}
+{"kind":"shape","slide":3,"id":"27","role":"stage 5","shapeType":"rect","bbox":[72,624,1136,86]}
+{"kind":"shape","slide":3,"id":"28","role":"stage number","shapeType":"rect","bbox":[90,638,52,44]}
+{"kind":"textbox","slide":3,"id":"28","role":"stage number","text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[90,638,52,44]}
+{"kind":"shape","slide":3,"id":"29","role":"stage divider","shapeType":"rect","bbox":[158,642,1,50]}
+{"kind":"shape","slide":3,"id":"30","role":"stage title","shapeType":"rect","bbox":[180,640,1008,24]}
+{"kind":"textbox","slide":3,"id":"30","role":"stage title","text":"Формальная оценка","textPreview":"Формальная оценка","textChars":17,"textLines":1,"bbox":[180,640,1008,24]}
+{"kind":"shape","slide":3,"id":"31","role":"stage body","shapeType":"rect","bbox":[180,672,1008,24]}
+{"kind":"textbox","slide":3,"id":"31","role":"stage body","text":"Сначала спрашиваем, стала ли музыка лучше. Затем проверяем, сохранился ли в ней след биоданных. Оба вопроса решаются статистически.","textPreview":"Сначала спрашиваем, стала ли музыка лучше. Затем проверяем, сохранился ли в ней след биоданных. Оба вопроса решаются статистически.","textChars":131,"textLines":1,"bbox":[180,672,1008,24]}
+{"kind":"shape","slide":4,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":4,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":4,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":4,"id":"3","role":"slide number","text":"04 / 08","textPreview":"04 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":4,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":4,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":4,"id":"5","role":"title","text":"Как поставлен эксперимент","textPreview":"Как поставлен эксперимент","textChars":25,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":4,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":4,"id":"6","role":"subtitle","text":"Если мы хотим понять, можно ли слушать биоданные, нужен честный парный протокол: с формулами, разбиением и контролем утечки, а не просто набор красивых примеров.","textPreview":"Если мы хотим понять, можно ли слушать биоданные, нужен честный парный протокол: с формулами, разбиением и контролем утечки, а не просто набор красивых примеров.","textChars":161,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":4,"id":"7","role":"metric panel: FASTA-\nпоследовательностей","shapeType":"rect","bbox":[72,234,248,104]}
+{"kind":"shape","slide":4,"id":"8","role":"metric accent: FASTA-\nпоследовательностей","shapeType":"rect","bbox":[72,234,248,6]}
+{"kind":"shape","slide":4,"id":"9","role":"metric value","shapeType":"rect","bbox":[88,252,216,32]}
+{"kind":"textbox","slide":4,"id":"9","role":"metric value","text":"2000","textPreview":"2000","textChars":4,"textLines":1,"bbox":[88,252,216,32]}
+{"kind":"shape","slide":4,"id":"10","role":"metric label","shapeType":"rect","bbox":[88,290,216,36]}
+{"kind":"textbox","slide":4,"id":"10","role":"metric label","text":"FASTA-\nпоследовательностей","textPreview":"FASTA- | последовательностей","textChars":26,"textLines":2,"bbox":[88,290,216,36]}
+{"kind":"shape","slide":4,"id":"11","role":"metric panel: пар MIDI↔биовектор","shapeType":"rect","bbox":[336,234,248,104]}
+{"kind":"shape","slide":4,"id":"12","role":"metric accent: пар MIDI↔биовектор","shapeType":"rect","bbox":[336,234,248,6]}
+{"kind":"shape","slide":4,"id":"13","role":"metric value","shapeType":"rect","bbox":[352,252,216,32]}
+{"kind":"textbox","slide":4,"id":"13","role":"metric value","text":"434","textPreview":"434","textChars":3,"textLines":1,"bbox":[352,252,216,32]}
+{"kind":"shape","slide":4,"id":"14","role":"metric label","shapeType":"rect","bbox":[352,290,216,36]}
+{"kind":"textbox","slide":4,"id":"14","role":"metric label","text":"пар MIDI↔биовектор","textPreview":"пар MIDI↔биовектор","textChars":18,"textLines":1,"bbox":[352,290,216,36]}
+{"kind":"shape","slide":4,"id":"15","role":"metric panel: разбиение\ntrain / val / test","shapeType":"rect","bbox":[600,234,248,104]}
+{"kind":"shape","slide":4,"id":"16","role":"metric accent: разбиение\ntrain / val / test","shapeType":"rect","bbox":[600,234,248,6]}
+{"kind":"shape","slide":4,"id":"17","role":"metric value","shapeType":"rect","bbox":[616,252,216,32]}
+{"kind":"textbox","slide":4,"id":"17","role":"metric value","text":"303 / 65 / 66","textPreview":"303 / 65 / 66","textChars":13,"textLines":1,"bbox":[616,252,216,32]}
+{"kind":"shape","slide":4,"id":"18","role":"metric label","shapeType":"rect","bbox":[616,290,216,36]}
+{"kind":"textbox","slide":4,"id":"18","role":"metric label","text":"разбиение\ntrain / val / test","textPreview":"разбиение | train / val / test","textChars":28,"textLines":2,"bbox":[616,290,216,36]}
+{"kind":"shape","slide":4,"id":"19","role":"metric panel: утечки между train и test","shapeType":"rect","bbox":[864,234,344,104]}
+{"kind":"shape","slide":4,"id":"20","role":"metric accent: утечки между train и test","shapeType":"rect","bbox":[864,234,344,6]}
+{"kind":"shape","slide":4,"id":"21","role":"metric value","shapeType":"rect","bbox":[880,252,312,32]}
+{"kind":"textbox","slide":4,"id":"21","role":"metric value","text":"Нет","textPreview":"Нет","textChars":3,"textLines":1,"bbox":[880,252,312,32]}
+{"kind":"shape","slide":4,"id":"22","role":"metric label","shapeType":"rect","bbox":[880,290,312,36]}
+{"kind":"textbox","slide":4,"id":"22","role":"metric label","text":"утечки между train и test","textPreview":"утечки между train и test","textChars":25,"textLines":1,"bbox":[880,290,312,36]}
+{"kind":"shape","slide":4,"id":"23","role":"text panel: Как FASTA превращается в число","shapeType":"rect","bbox":[72,354,364,286]}
+{"kind":"shape","slide":4,"id":"24","role":"text panel accent: Как FASTA превращается в число","shapeType":"rect","bbox":[72,354,6,286]}
+{"kind":"shape","slide":4,"id":"25","role":"panel title","shapeType":"rect","bbox":[90,370,328,22]}
+{"kind":"textbox","slide":4,"id":"25","role":"panel title","text":"Как FASTA превращается в число","textPreview":"Как FASTA превращается в число","textChars":30,"textLines":1,"bbox":[90,370,328,22]}
+{"kind":"shape","slide":4,"id":"26","role":"panel body","shapeType":"rect","bbox":[90,406,328,216]}
+{"kind":"textbox","slide":4,"id":"26","role":"panel body","text":"Последовательности очищались\nдо A/C/G/T.\nДальше считались:\nчастоты A/C/G/T,\nH = -Σ p_i log2 p_i,\nGC_skew = (G-C)/(G+C),\nAT_skew = (A-T)/(A+T),\nk-mers для k = 1, 2, 3.\nИтог: биовектор 128D.","textPreview":"Последовательности очищались | до A/C/G/T. | Дальше считались: | частоты A/C/G/T, | H = -Σ p_i log2 p_i, | GC_skew = (G-C)/(G+C), | AT_skew = (A-T)/(A+T), | k-mers для k = 1, 2, 3.","textChars":188,"textLines":9,"bbox":[90,406,328,216]}
+{"kind":"shape","slide":4,"id":"27","role":"chart panel: Разбиение: обучение / валидация / тест","shapeType":"rect","bbox":[458,354,364,280]}
+{"kind":"shape","slide":4,"id":"28","role":"chart panel title","shapeType":"rect","bbox":[476,368,328,18]}
+{"kind":"textbox","slide":4,"id":"28","role":"chart panel title","text":"Разбиение: обучение / валидация / тест","textPreview":"Разбиение: обучение / валидация / тест","textChars":38,"textLines":1,"bbox":[476,368,328,18]}
+{"kind":"chart","slide":4,"id":"f9c01bc2-352f-4ae9-b4a7-461682e9abe3","role":"Разбиение: обучение / валидация / тест","chartType":"bar","seriesNames":["Samples"],"categories":["Обучение","Валидация","Тест"],"native":true,"bbox":[476,394,328,222]}
+{"kind":"shape","slide":4,"id":"30","role":"text panel: Как строились пары","shapeType":"rect","bbox":[844,354,364,286]}
+{"kind":"shape","slide":4,"id":"31","role":"text panel accent: Как строились пары","shapeType":"rect","bbox":[844,354,6,286]}
+{"kind":"shape","slide":4,"id":"32","role":"panel title","shapeType":"rect","bbox":[862,370,328,22]}
+{"kind":"textbox","slide":4,"id":"32","role":"panel title","text":"Как строились пары","textPreview":"Как строились пары","textChars":18,"textLines":1,"bbox":[862,370,328,22]}
+{"kind":"shape","slide":4,"id":"33","role":"panel body","shapeType":"rect","bbox":[862,406,328,216]}
+{"kind":"textbox","slide":4,"id":"33","role":"panel body","text":"Чтобы сравнение было честным,\nMIDI и биовекторы\nсопоставляли по рангу\nсложности.\nMIDI_c = 0.6 * pitch_entropy\n+ 0.4 * velocity_entropy\nBio_c = var(bio_vector)\n+ mean(abs(bio_vector))\nТак получались пары\nдля обучения модели.","textPreview":"Чтобы сравнение было честным, | MIDI и биовекторы | сопоставляли по рангу | сложности. | MIDI_c = 0.6 * pitch_entropy | + 0.4 * velocity_entropy | Bio_c = var(bio_vector) | + mean(","textChars":223,"textLines":10,"bbox":[862,406,328,216]}
+{"kind":"shape","slide":5,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":5,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":5,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":5,"id":"3","role":"slide number","text":"05 / 08","textPreview":"05 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":5,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":5,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":5,"id":"5","role":"title","text":"Как модель учится","textPreview":"Как модель учится","textChars":17,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":5,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":5,"id":"6","role":"subtitle","text":"Задача модели не в том, чтобы 'угадать геном', а в том, чтобы генерировать осмысленную музыку и использовать биосигнал как дополнительный контекст.","textPreview":"Задача модели не в том, чтобы 'угадать геном', а в том, чтобы генерировать осмысленную музыку и использовать биосигнал как дополнительный контекст.","textChars":147,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":5,"id":"7","role":"metric panel: параметров модели","shapeType":"rect","bbox":[72,234,248,90]}
+{"kind":"shape","slide":5,"id":"8","role":"metric accent: параметров модели","shapeType":"rect","bbox":[72,234,248,6]}
+{"kind":"shape","slide":5,"id":"9","role":"metric value","shapeType":"rect","bbox":[88,252,216,32]}
+{"kind":"textbox","slide":5,"id":"9","role":"metric value","text":"6.28M","textPreview":"6.28M","textChars":5,"textLines":1,"bbox":[88,252,216,32]}
+{"kind":"shape","slide":5,"id":"10","role":"metric label","shapeType":"rect","bbox":[88,290,216,22]}
+{"kind":"textbox","slide":5,"id":"10","role":"metric label","text":"параметров модели","textPreview":"параметров модели","textChars":17,"textLines":1,"bbox":[88,290,216,22]}
+{"kind":"shape","slide":5,"id":"11","role":"metric panel: эпох обучения","shapeType":"rect","bbox":[336,234,248,90]}
+{"kind":"shape","slide":5,"id":"12","role":"metric accent: эпох обучения","shapeType":"rect","bbox":[336,234,248,6]}
+{"kind":"shape","slide":5,"id":"13","role":"metric value","shapeType":"rect","bbox":[352,252,216,32]}
+{"kind":"textbox","slide":5,"id":"13","role":"metric value","text":"50","textPreview":"50","textChars":2,"textLines":1,"bbox":[352,252,216,32]}
+{"kind":"shape","slide":5,"id":"14","role":"metric label","shapeType":"rect","bbox":[352,290,216,22]}
+{"kind":"textbox","slide":5,"id":"14","role":"metric label","text":"эпох обучения","textPreview":"эпох обучения","textChars":13,"textLines":1,"bbox":[352,290,216,22]}
+{"kind":"shape","slide":5,"id":"15","role":"metric panel: размер батча","shapeType":"rect","bbox":[600,234,248,90]}
+{"kind":"shape","slide":5,"id":"16","role":"metric accent: размер батча","shapeType":"rect","bbox":[600,234,248,6]}
+{"kind":"shape","slide":5,"id":"17","role":"metric value","shapeType":"rect","bbox":[616,252,216,32]}
+{"kind":"textbox","slide":5,"id":"17","role":"metric value","text":"32","textPreview":"32","textChars":2,"textLines":1,"bbox":[616,252,216,32]}
+{"kind":"shape","slide":5,"id":"18","role":"metric label","shapeType":"rect","bbox":[616,290,216,22]}
+{"kind":"textbox","slide":5,"id":"18","role":"metric label","text":"размер батча","textPreview":"размер батча","textChars":12,"textLines":1,"bbox":[616,290,216,22]}
+{"kind":"shape","slide":5,"id":"19","role":"metric panel: лучшая ошибка на валидации","shapeType":"rect","bbox":[864,234,344,90]}
+{"kind":"shape","slide":5,"id":"20","role":"metric accent: лучшая ошибка на валидации","shapeType":"rect","bbox":[864,234,344,6]}
+{"kind":"shape","slide":5,"id":"21","role":"metric value","shapeType":"rect","bbox":[880,252,312,32]}
+{"kind":"textbox","slide":5,"id":"21","role":"metric value","text":"2.9736","textPreview":"2.9736","textChars":6,"textLines":1,"bbox":[880,252,312,32]}
+{"kind":"shape","slide":5,"id":"22","role":"metric label","shapeType":"rect","bbox":[880,290,312,22]}
+{"kind":"textbox","slide":5,"id":"22","role":"metric label","text":"лучшая ошибка на валидации","textPreview":"лучшая ошибка на валидации","textChars":26,"textLines":1,"bbox":[880,290,312,22]}
+{"kind":"shape","slide":5,"id":"23","role":"text panel: Что видит модель","shapeType":"rect","bbox":[72,354,364,286]}
+{"kind":"shape","slide":5,"id":"24","role":"text panel accent: Что видит модель","shapeType":"rect","bbox":[72,354,6,286]}
+{"kind":"shape","slide":5,"id":"25","role":"panel title","shapeType":"rect","bbox":[90,370,328,22]}
+{"kind":"textbox","slide":5,"id":"25","role":"panel title","text":"Что видит модель","textPreview":"Что видит модель","textChars":16,"textLines":1,"bbox":[90,370,328,22]}
+{"kind":"shape","slide":5,"id":"26","role":"panel body","shapeType":"rect","bbox":[90,406,328,216]}
+{"kind":"textbox","slide":5,"id":"26","role":"panel body","text":"Музыка кодируется как цепочка\nиз 408 токенов:\nNOTE_ON, NOTE_OFF, SHIFT,\nVEL и BOS/EOS/PAD.\n\nБиовектор 128D отдельно\nсжимается до conditioning 24D\nи подмешивается в скрытое\nсостояние Transformer.","textPreview":"Музыка кодируется как цепочка | из 408 токенов: | NOTE_ON, NOTE_OFF, SHIFT, | VEL и BOS/EOS/PAD. |  | Биовектор 128D отдельно | сжимается до conditioning 24D | и подмешивается в ск","textChars":194,"textLines":9,"bbox":[90,406,328,216]}
+{"kind":"shape","slide":5,"id":"27","role":"text panel: Один шаг обучения","shapeType":"rect","bbox":[458,354,364,286]}
+{"kind":"shape","slide":5,"id":"28","role":"text panel accent: Один шаг обучения","shapeType":"rect","bbox":[458,354,6,286]}
+{"kind":"shape","slide":5,"id":"29","role":"panel title","shapeType":"rect","bbox":[476,370,328,22]}
+{"kind":"textbox","slide":5,"id":"29","role":"panel title","text":"Один шаг обучения","textPreview":"Один шаг обучения","textChars":17,"textLines":1,"bbox":[476,370,328,22]}
+{"kind":"shape","slide":5,"id":"30","role":"panel body","shapeType":"rect","bbox":[476,406,328,216]}
+{"kind":"textbox","slide":5,"id":"30","role":"panel body","text":"На каждом шаге модель получает\nуже начатую MIDI-последовательность\nи пытается предсказать\nследующий токен.\n\nЕсли правильный токен получает\nвысокую вероятность, ошибка мала.\nЕсли нет, веса обновляются.\nТак модель постепенно учится\nмузыкальной структуре.","textPreview":"На каждом шаге модель получает | уже начатую MIDI-последовательность | и пытается предсказать | следующий токен. |  | Если правильный токен получает | высокую вероятность, ошибка м","textChars":252,"textLines":10,"bbox":[476,406,328,216]}
+{"kind":"shape","slide":5,"id":"31","role":"text panel: Функция потерь","shapeType":"rect","bbox":[844,354,364,286]}
+{"kind":"shape","slide":5,"id":"32","role":"text panel accent: Функция потерь","shapeType":"rect","bbox":[844,354,6,286]}
+{"kind":"shape","slide":5,"id":"33","role":"panel title","shapeType":"rect","bbox":[862,370,328,22]}
+{"kind":"textbox","slide":5,"id":"33","role":"panel title","text":"Функция потерь","textPreview":"Функция потерь","textChars":14,"textLines":1,"bbox":[862,370,328,22]}
+{"kind":"shape","slide":5,"id":"34","role":"panel body","shapeType":"rect","bbox":[862,406,328,216]}
+{"kind":"textbox","slide":5,"id":"34","role":"panel body","text":"total_loss = CE(main, target)\n+ 0.2 * CE(aux, target)\nCross-entropy штрафует модель,\nесли она даёт низкую\nвероятность правильному токену.\nAuxiliary LM с замороженными\nвесами добавляет регуляризацию.\nAdamW, lr = 1e-4,\ngrad clip = 1.0.","textPreview":"total_loss = CE(main, target) | + 0.2 * CE(aux, target) | Cross-entropy штрафует модель, | если она даёт низкую | вероятность правильному токену. | Auxiliary LM с замороженными | в","textChars":233,"textLines":9,"bbox":[862,406,328,216]}
+{"kind":"shape","slide":6,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":6,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":6,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":6,"id":"3","role":"slide number","text":"06 / 08","textPreview":"06 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":6,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":6,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":6,"id":"5","role":"title","text":"Как оцениваем модель","textPreview":"Как оцениваем модель","textChars":20,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":6,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":6,"id":"6","role":"subtitle","text":"Актуальность проекта именно в проверке: не просто озвучить данные, а понять, слышим ли мы что-то устойчивое и измеримое.","textPreview":"Актуальность проекта именно в проверке: не просто озвучить данные, а понять, слышим ли мы что-то устойчивое и измеримое.","textChars":120,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":6,"id":"7","role":"metric panel: режимов генерации","shapeType":"rect","bbox":[72,234,248,90]}
+{"kind":"shape","slide":6,"id":"8","role":"metric accent: режимов генерации","shapeType":"rect","bbox":[72,234,248,6]}
+{"kind":"shape","slide":6,"id":"9","role":"metric value","shapeType":"rect","bbox":[88,252,216,32]}
+{"kind":"textbox","slide":6,"id":"9","role":"metric value","text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[88,252,216,32]}
+{"kind":"shape","slide":6,"id":"10","role":"metric label","shapeType":"rect","bbox":[88,290,216,22]}
+{"kind":"textbox","slide":6,"id":"10","role":"metric label","text":"режимов генерации","textPreview":"режимов генерации","textChars":17,"textLines":1,"bbox":[88,290,216,22]}
+{"kind":"shape","slide":6,"id":"11","role":"metric panel: MIDI на режим","shapeType":"rect","bbox":[336,234,248,90]}
+{"kind":"shape","slide":6,"id":"12","role":"metric accent: MIDI на режим","shapeType":"rect","bbox":[336,234,248,6]}
+{"kind":"shape","slide":6,"id":"13","role":"metric value","shapeType":"rect","bbox":[352,252,216,32]}
+{"kind":"textbox","slide":6,"id":"13","role":"metric value","text":"60","textPreview":"60","textChars":2,"textLines":1,"bbox":[352,252,216,32]}
+{"kind":"shape","slide":6,"id":"14","role":"metric label","shapeType":"rect","bbox":[352,290,216,22]}
+{"kind":"textbox","slide":6,"id":"14","role":"metric label","text":"MIDI на режим","textPreview":"MIDI на режим","textChars":13,"textLines":1,"bbox":[352,290,216,22]}
+{"kind":"shape","slide":6,"id":"15","role":"metric panel: биокластера для H2","shapeType":"rect","bbox":[600,234,248,90]}
+{"kind":"shape","slide":6,"id":"16","role":"metric accent: биокластера для H2","shapeType":"rect","bbox":[600,234,248,6]}
+{"kind":"shape","slide":6,"id":"17","role":"metric value","shapeType":"rect","bbox":[616,252,216,32]}
+{"kind":"textbox","slide":6,"id":"17","role":"metric value","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[616,252,216,32]}
+{"kind":"shape","slide":6,"id":"18","role":"metric label","shapeType":"rect","bbox":[616,290,216,22]}
+{"kind":"textbox","slide":6,"id":"18","role":"metric label","text":"биокластера для H2","textPreview":"биокластера для H2","textChars":18,"textLines":1,"bbox":[616,290,216,22]}
+{"kind":"shape","slide":6,"id":"19","role":"metric panel: перестановок в тесте","shapeType":"rect","bbox":[864,234,344,90]}
+{"kind":"shape","slide":6,"id":"20","role":"metric accent: перестановок в тесте","shapeType":"rect","bbox":[864,234,344,6]}
+{"kind":"shape","slide":6,"id":"21","role":"metric value","shapeType":"rect","bbox":[880,252,312,32]}
+{"kind":"textbox","slide":6,"id":"21","role":"metric value","text":"1000","textPreview":"1000","textChars":4,"textLines":1,"bbox":[880,252,312,32]}
+{"kind":"shape","slide":6,"id":"22","role":"metric label","shapeType":"rect","bbox":[880,290,312,22]}
+{"kind":"textbox","slide":6,"id":"22","role":"metric label","text":"перестановок в тесте","textPreview":"перестановок в тесте","textChars":20,"textLines":1,"bbox":[880,290,312,22]}
+{"kind":"shape","slide":6,"id":"23","role":"text panel: H1: музыка стала лучше?","shapeType":"rect","bbox":[72,354,548,330]}
+{"kind":"shape","slide":6,"id":"24","role":"text panel accent: H1: музыка стала лучше?","shapeType":"rect","bbox":[72,354,6,330]}
+{"kind":"shape","slide":6,"id":"25","role":"panel title","shapeType":"rect","bbox":[90,370,512,22]}
+{"kind":"textbox","slide":6,"id":"25","role":"panel title","text":"H1: музыка стала лучше?","textPreview":"H1: музыка стала лучше?","textChars":23,"textLines":1,"bbox":[90,370,512,22]}
+{"kind":"shape","slide":6,"id":"26","role":"panel body","shapeType":"rect","bbox":[90,406,512,260]}
+{"kind":"textbox","slide":6,"id":"26","role":"panel body","text":"Считаются четыре ядра качества:\nтональность, ритм,\nмелодика, гармония.\nОтдельно считается\nструктурное качество:\nесть ли нотная активность,\nбаланс NOTE_ON/OFF,\nразнообразие токенов\nи корректный EOS.\nФинальный балл =\n0.8 * mean(core)\n+ 0.2 * structural_quality","textPreview":"Считаются четыре ядра качества: | тональность, ритм, | мелодика, гармония. | Отдельно считается | структурное качество: | есть ли нотная активность, | баланс NOTE_ON/OFF, | разнооб","textChars":258,"textLines":12,"bbox":[90,406,512,260]}
+{"kind":"shape","slide":6,"id":"27","role":"text panel: H2: музыка несёт след биоданных?","shapeType":"rect","bbox":[644,354,564,330]}
+{"kind":"shape","slide":6,"id":"28","role":"text panel accent: H2: музыка несёт след биоданных?","shapeType":"rect","bbox":[644,354,6,330]}
+{"kind":"shape","slide":6,"id":"29","role":"panel title","shapeType":"rect","bbox":[662,370,528,22]}
+{"kind":"textbox","slide":6,"id":"29","role":"panel title","text":"H2: музыка несёт след биоданных?","textPreview":"H2: музыка несёт след биоданных?","textChars":32,"textLines":1,"bbox":[662,370,528,22]}
+{"kind":"shape","slide":6,"id":"30","role":"panel body","shapeType":"rect","bbox":[662,406,528,260]}
+{"kind":"textbox","slide":6,"id":"30","role":"panel body","text":"Биовекторы делятся\nна 3 кластера.\nИз музыки берутся признаки:\nплотность, высота,\nразброс высот,\nсредняя громкость и SHIFT.\nКлассификатор по\nкросс-валидации пытается\nвосстановить номер кластера.\nПотом permutation test проверяет,\nне случайна ли эта точность.","textPreview":"Биовекторы делятся | на 3 кластера. | Из музыки берутся признаки: | плотность, высота, | разброс высот, | средняя громкость и SHIFT. | Классификатор по | кросс-валидации пытается |","textChars":256,"textLines":11,"bbox":[662,406,528,260]}
+{"kind":"shape","slide":7,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":7,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":7,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":7,"id":"3","role":"slide number","text":"07 / 08","textPreview":"07 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":7,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":7,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":7,"id":"5","role":"title","text":"Что получилось","textPreview":"Что получилось","textChars":14,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":7,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":7,"id":"6","role":"subtitle","text":"Теперь можно ответить на два главных вопроса: помогает ли биосигнал музыке и остаётся ли в музыке различимый след самих данных.","textPreview":"Теперь можно ответить на два главных вопроса: помогает ли биосигнал музыке и остаётся ли в музыке различимый след самих данных.","textChars":127,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":7,"id":"7","role":"chart panel: H1: композитный балл качества","shapeType":"rect","bbox":[72,234,548,250]}
+{"kind":"shape","slide":7,"id":"8","role":"chart panel title","shapeType":"rect","bbox":[90,248,512,18]}
+{"kind":"textbox","slide":7,"id":"8","role":"chart panel title","text":"H1: композитный балл качества","textPreview":"H1: композитный балл качества","textChars":29,"textLines":1,"bbox":[90,248,512,18]}
+{"kind":"chart","slide":7,"id":"0c9ea416-56ad-4160-ad45-f836b10fa37b","role":"H1: композитный балл качества","chartType":"bar","seriesNames":["С управлением","Без управления"],"categories":["Качество"],"native":true,"bbox":[90,274,512,192]}
+{"kind":"shape","slide":7,"id":"10","role":"chart panel: H2: точность восстановления кластера","shapeType":"rect","bbox":[644,234,564,250]}
+{"kind":"shape","slide":7,"id":"11","role":"chart panel title","shapeType":"rect","bbox":[662,248,528,18]}
+{"kind":"textbox","slide":7,"id":"11","role":"chart panel title","text":"H2: точность восстановления кластера","textPreview":"H2: точность восстановления кластера","textChars":36,"textLines":1,"bbox":[662,248,528,18]}
+{"kind":"chart","slide":7,"id":"5228635f-6bde-4c04-a6a4-681a01a26dcd","role":"H2: точность восстановления кластера","chartType":"bar","seriesNames":["Наблюдаемая","Случайный уровень"],"categories":["Точность"],"native":true,"bbox":[662,274,528,192]}
+{"kind":"shape","slide":7,"id":"13","role":"text panel: Как читать H1","shapeType":"rect","bbox":[72,508,548,180]}
+{"kind":"shape","slide":7,"id":"14","role":"text panel accent: Как читать H1","shapeType":"rect","bbox":[72,508,6,180]}
+{"kind":"shape","slide":7,"id":"15","role":"panel title","shapeType":"rect","bbox":[90,524,512,22]}
+{"kind":"textbox","slide":7,"id":"15","role":"panel title","text":"Как читать H1","textPreview":"Как читать H1","textChars":13,"textLines":1,"bbox":[90,524,512,22]}
+{"kind":"shape","slide":7,"id":"16","role":"panel body","shapeType":"rect","bbox":[90,560,512,110]}
+{"kind":"textbox","slide":7,"id":"16","role":"panel body","text":"0.6587 против 0.6416.\np = 0.0003929,\nCohen's d = 0.6719.\nБиоуправление улучшает музыку\nсистематически, а не случайно.","textPreview":"0.6587 против 0.6416. | p = 0.0003929, | Cohen's d = 0.6719. | Биоуправление улучшает музыку | систематически, а не случайно.","textChars":117,"textLines":5,"bbox":[90,560,512,110]}
+{"kind":"shape","slide":7,"id":"17","role":"text panel: Как читать H2","shapeType":"rect","bbox":[644,508,564,180]}
+{"kind":"shape","slide":7,"id":"18","role":"text panel accent: Как читать H2","shapeType":"rect","bbox":[644,508,6,180]}
+{"kind":"shape","slide":7,"id":"19","role":"panel title","shapeType":"rect","bbox":[662,524,528,22]}
+{"kind":"textbox","slide":7,"id":"19","role":"panel title","text":"Как читать H2","textPreview":"Как читать H2","textChars":13,"textLines":1,"bbox":[662,524,528,22]}
+{"kind":"shape","slide":7,"id":"20","role":"panel body","shapeType":"rect","bbox":[662,560,528,110]}
+{"kind":"textbox","slide":7,"id":"20","role":"panel body","text":"0.40 против 0.333.\nПерестановочный p = 0.2218.\nСлед биоданных возможен,\nно его пока нельзя уверенно\nотделить от случайности.","textPreview":"0.40 против 0.333. | Перестановочный p = 0.2218. | След биоданных возможен, | но его пока нельзя уверенно | отделить от случайности.","textChars":124,"textLines":5,"bbox":[662,560,528,110]}
+{"kind":"shape","slide":8,"id":"2","role":"deck label","shapeType":"rect","bbox":[72,34,320,18]}
+{"kind":"textbox","slide":8,"id":"2","role":"deck label","text":"BioSonification (биосонификация)","textPreview":"BioSonification (биосонификация)","textChars":32,"textLines":1,"bbox":[72,34,320,18]}
+{"kind":"shape","slide":8,"id":"3","role":"slide number","shapeType":"rect","bbox":[1088,34,120,18]}
+{"kind":"textbox","slide":8,"id":"3","role":"slide number","text":"08 / 08","textPreview":"08 / 08","textChars":7,"textLines":1,"bbox":[1088,34,120,18]}
+{"kind":"shape","slide":8,"id":"4","role":"header rule","shapeType":"rect","bbox":[72,60,1136,1]}
+{"kind":"shape","slide":8,"id":"5","role":"title","shapeType":"rect","bbox":[72,88,760,64]}
+{"kind":"textbox","slide":8,"id":"5","role":"title","text":"Что это даёт и что дальше","textPreview":"Что это даёт и что дальше","textChars":25,"textLines":1,"bbox":[72,88,760,64]}
+{"kind":"shape","slide":8,"id":"6","role":"subtitle","shapeType":"rect","bbox":[72,154,840,54]}
+{"kind":"textbox","slide":8,"id":"6","role":"subtitle","text":"Здесь исходная актуальность замыкается: если биоданные можно слушать осмысленно, сонификация становится не украшением, а новым интерфейсом восприятия.","textPreview":"Здесь исходная актуальность замыкается: если биоданные можно слушать осмысленно, сонификация становится не украшением, а новым интерфейсом восприятия.","textChars":150,"textLines":1,"bbox":[72,154,840,54]}
+{"kind":"shape","slide":8,"id":"7","role":"text panel: Что уже можно сказать","shapeType":"rect","bbox":[72,234,360,180]}
+{"kind":"shape","slide":8,"id":"8","role":"text panel accent: Что уже можно сказать","shapeType":"rect","bbox":[72,234,6,180]}
+{"kind":"shape","slide":8,"id":"9","role":"panel title","shapeType":"rect","bbox":[90,250,324,22]}
+{"kind":"textbox","slide":8,"id":"9","role":"panel title","text":"Что уже можно сказать","textPreview":"Что уже можно сказать","textChars":21,"textLines":1,"bbox":[90,250,324,22]}
+{"kind":"shape","slide":8,"id":"10","role":"panel body","shapeType":"rect","bbox":[90,286,324,110]}
+{"kind":"textbox","slide":8,"id":"10","role":"panel body","text":"Биоданные уже можно\nделать слышимыми:\nпризнаки последовательности\nстановятся музыкальными\nпараметрами генерации.","textPreview":"Биоданные уже можно | делать слышимыми: | признаки последовательности | становятся музыкальными | параметрами генерации.","textChars":112,"textLines":5,"bbox":[90,286,324,110]}
+{"kind":"shape","slide":8,"id":"11","role":"text panel: Почему это важно","shapeType":"rect","bbox":[460,234,360,180]}
+{"kind":"shape","slide":8,"id":"12","role":"text panel accent: Почему это важно","shapeType":"rect","bbox":[460,234,6,180]}
+{"kind":"shape","slide":8,"id":"13","role":"panel title","shapeType":"rect","bbox":[478,250,324,22]}
+{"kind":"textbox","slide":8,"id":"13","role":"panel title","text":"Почему это важно","textPreview":"Почему это важно","textChars":16,"textLines":1,"bbox":[478,250,324,22]}
+{"kind":"shape","slide":8,"id":"14","role":"panel body","shapeType":"rect","bbox":[478,286,324,110]}
+{"kind":"textbox","slide":8,"id":"14","role":"panel body","text":"Слух становится\nдополнительным каналом:\nон помогает замечать\nпаттерны, контрасты\nи вариативность.","textPreview":"Слух становится | дополнительным каналом: | он помогает замечать | паттерны, контрасты | и вариативность.","textChars":97,"textLines":5,"bbox":[478,286,324,110]}
+{"kind":"shape","slide":8,"id":"15","role":"text panel: Для кого это полезно","shapeType":"rect","bbox":[848,234,360,180]}
+{"kind":"shape","slide":8,"id":"16","role":"text panel accent: Для кого это полезно","shapeType":"rect","bbox":[848,234,6,180]}
+{"kind":"shape","slide":8,"id":"17","role":"panel title","shapeType":"rect","bbox":[866,250,324,22]}
+{"kind":"textbox","slide":8,"id":"17","role":"panel title","text":"Для кого это полезно","textPreview":"Для кого это полезно","textChars":20,"textLines":1,"bbox":[866,250,324,22]}
+{"kind":"shape","slide":8,"id":"18","role":"panel body","shapeType":"rect","bbox":[866,286,324,110]}
+{"kind":"textbox","slide":8,"id":"18","role":"panel body","text":"Неспециалист получает\nинтуитивный вход в тему,\nа исследователь — интерфейс\nдля поискового анализа\nи научной коммуникации.","textPreview":"Неспециалист получает | интуитивный вход в тему, | а исследователь — интерфейс | для поискового анализа | и научной коммуникации.","textChars":121,"textLines":5,"bbox":[866,286,324,110]}
+{"kind":"shape","slide":8,"id":"19","role":"text panel: Что пока ограничивает выводы","shapeType":"rect","bbox":[72,438,548,180]}
+{"kind":"shape","slide":8,"id":"20","role":"text panel accent: Что пока ограничивает выводы","shapeType":"rect","bbox":[72,438,6,180]}
+{"kind":"shape","slide":8,"id":"21","role":"panel title","shapeType":"rect","bbox":[90,454,512,22]}
+{"kind":"textbox","slide":8,"id":"21","role":"panel title","text":"Что пока ограничивает выводы","textPreview":"Что пока ограничивает выводы","textChars":28,"textLines":1,"bbox":[90,454,512,22]}
+{"kind":"shape","slide":8,"id":"22","role":"panel body","shapeType":"rect","bbox":[90,490,512,110]}
+{"kind":"textbox","slide":8,"id":"22","role":"panel body","text":"434 пары мало\nдля сильного вывода\nо переносе информации.\nH2 не подтверждена,\nпоэтому это пока исследовательская платформа.","textPreview":"434 пары мало | для сильного вывода | о переносе информации. | H2 не подтверждена, | поэтому это пока исследовательская платформа.","textChars":122,"textLines":5,"bbox":[90,490,512,110]}
+{"kind":"shape","slide":8,"id":"23","role":"text panel: Что делать дальше","shapeType":"rect","bbox":[644,438,564,180]}
+{"kind":"shape","slide":8,"id":"24","role":"text panel accent: Что делать дальше","shapeType":"rect","bbox":[644,438,6,180]}
+{"kind":"shape","slide":8,"id":"25","role":"panel title","shapeType":"rect","bbox":[662,454,528,22]}
+{"kind":"textbox","slide":8,"id":"25","role":"panel title","text":"Что делать дальше","textPreview":"Что делать дальше","textChars":17,"textLines":1,"bbox":[662,454,528,22]}
+{"kind":"shape","slide":8,"id":"26","role":"panel body","shapeType":"rect","bbox":[662,490,528,110]}
+{"kind":"textbox","slide":8,"id":"26","role":"panel body","text":"Нужны больше парных данных,\nбогаче биопризнаки,\nслуховые исследования\nс экспертами и новичками,\nи сильнее метрики переноса.","textPreview":"Нужны больше парных данных, | богаче биопризнаки, | слуховые исследования | с экспертами и новичками, | и сильнее метрики переноса.","textChars":123,"textLines":5,"bbox":[662,490,528,110]}
+{"kind":"shape","slide":8,"id":"27","role":"closing note","shapeType":"rect","bbox":[72,636,980,18]}
+{"kind":"textbox","slide":8,"id":"27","role":"closing note","text":"Главный итог: на биоданные уже можно смотреть ушами, но этот канал восприятия ещё нужно сделать надёжнее и богаче.","textPreview":"Главный итог: на биоданные уже можно смотреть ушами, но этот канал восприятия ещё нужно сделать надёжнее и богаче.","textChars":114,"textLines":1,"bbox":[72,636,980,18]}

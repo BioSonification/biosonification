@@ -11,79 +11,87 @@ from pathlib import Path
 import mido
 
 
-def tokens_to_midi(tokens: List[int], 
+def tokens_to_midi(tokens: List[int],
                    preprocessor_vocab: Dict[str, int],
                    output_path: str,
                    tempo: int = 120,
                    ticks_per_beat: int = 480) -> bool:
     """
     Convert token sequence to MIDI file.
-    
+
     Args:
         tokens: List of token IDs
         preprocessor_vocab: Token vocabulary mapping
         output_path: Path to save MIDI file
         tempo: Tempo in BPM
         ticks_per_beat: MIDI time resolution
-        
+
     Returns:
         True if successful, False otherwise
     """
     try:
         # Create reverse vocabulary
         idx_to_token = {v: k for k, v in preprocessor_vocab.items()}
-        
+
         # Create MIDI file
         midi = mido.MidiFile()
         midi.ticks_per_beat = ticks_per_beat
         track = mido.MidiTrack()
         midi.tracks.append(track)
-        
+
         # Set tempo
         track.append(mido.MetaMessage('set_tempo', tempo=mido.bpm2tempo(tempo)))
-        
+
         current_time = 0
-        active_notes = {}
-        
+        pending_notes = {}  # pitch -> velocity (waiting for note_off)
+
         for token_id in tokens:
             if token_id not in idx_to_token:
                 continue
-            
+
             token = idx_to_token[token_id]
-            
+
             if token.startswith('SHIFT_'):
                 shift = int(token.split('_')[1])
                 current_time += shift * 10  # Scale back from quantization
-                
-            elif token.startswith('NOTE_ON_'):
-                pitch = int(token.split('_')[2])
-                active_notes[pitch] = {'time': current_time}
-                
+
             elif token.startswith('VEL_'):
                 velocity = int(token.split('_')[1])
-                # Find corresponding NOTE_ON
-                for pitch, note_info in list(active_notes.items()):
-                    if 'velocity' not in note_info:
-                        note_info['velocity'] = velocity
-                        track.append(mido.Message('note_on', note=pitch, 
-                                                 velocity=velocity, time=0))
-                        break
-                        
+                # Apply velocity to all pending notes
+                for pitch in list(pending_notes.keys()):
+                    track.append(mido.Message('note_on', note=pitch,
+                                             velocity=velocity, time=0))
+                    pending_notes[pitch] = True  # Mark as played
+
+            elif token.startswith('NOTE_ON_'):
+                pitch = int(token.split('_')[2])
+                # Store the note, wait for VEL and NOTE_OFF
+                pending_notes[pitch] = False  # False = not yet sent
+
             elif token.startswith('NOTE_OFF_'):
                 pitch = int(token.split('_')[2])
-                track.append(mido.Message('note_off', note=pitch, velocity=64, time=0))
-                if pitch in active_notes:
-                    del active_notes[pitch]
-        
+                # Send note_off with elapsed time
+                track.append(mido.Message('note_off', note=pitch, velocity=64, time=current_time))
+                current_time = 0
+                if pitch in pending_notes:
+                    del pending_notes[pitch]
+
+        # Flush remaining notes
+        for pitch in list(pending_notes.keys()):
+            track.append(mido.Message('note_off', note=pitch, velocity=64, time=current_time))
+            current_time = 0
+
         # End of track
         track.append(mido.MetaMessage('end_of_track', time=0))
-        
+
         # Save
         midi.save(output_path)
         return True
-        
+
     except Exception as e:
         print(f"Error converting tokens to MIDI: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
