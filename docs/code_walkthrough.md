@@ -1,707 +1,332 @@
 # Подробный Разбор Кода
 
-Этот документ разбирает проект как программную систему: какие файлы запускают пайплайн, какие классы и функции отвечают за отдельные стадии, как между ними передаются данные и в каком порядке работает весь стек.
+Этот документ описывает **актуальную инженерную структуру проекта после перехода на `v2` пайплайн**. Старый стек по-прежнему присутствует в репозитории, но теперь он рассматривается как legacy-контур, а не как основной путь запуска.
 
 ## 1. Карта входных точек
 
-### `run_pipeline.py`
+### `train_bio_music_v2.py`
 
-Главная исполняемая точка проекта. Именно здесь живёт класс `BioMusicPipeline`, который оркестрирует 5 стадий:
-
-1. extraction,
-2. sonification,
-3. dataset preparation,
-4. training,
-5. generation + evaluation.
-
-Внутри `main()` парсятся CLI-аргументы:
-
-- `--config`
-- `--sequences`
-- `--midi-dir`
-- `--paired-data`
-- `--allow-synthetic`
-
-После этого создаётся объект `BioMusicPipeline` и вызывается `pipeline.run(...)`.
-
-### `generate_from_fasta.py`
-
-Отдельная утилита для одиночной генерации:
-
-- берёт один FASTA-фрагмент,
-- строит по нему биовектор,
-- прогоняет через обученную модель,
-- сохраняет один MIDI и метаинформацию.
-
-Это полезно для sanity check, демонстраций и отдельных примеров в дипломе.
-
-### `scan_datasets.py`
-
-Сервисный скрипт:
-
-- умеет создать стандартные каталоги `data/fasta` и `data/midi`,
-- сканирует репозиторий,
-- показывает, какие FASTA и MIDI будут подхвачены пайплайном.
-
-### `web/app.py`
-
-Точка входа для Flask-приложения. Поднимает UI для генерации музыки из FASTA без повторного обучения модели.
-
-### `tools/run_multi_seed_experiments.py`
-
-Оркестрирует серию запусков пайплайна на разных seed и агрегирует метрики.
-
-### `tools/generate_research_artifacts.py`
-
-Собирает `final_report.json` из разных запусков и превращает их в:
-
-- summary CSV/JSON,
-- графики,
-- markdown-отчёт.
-
-## 2. `run_pipeline.py`: детальный разбор
-
-### 2.1 `BioMusicPipeline.__init__`
+Главная точка запуска обучения.
 
 Что делает:
 
-1. читает JSON-конфиг;
-2. фиксирует seed через `set_seed()`;
-3. создаёт `output_dir`;
-4. инициализирует контейнер `self.results`.
+1. читает `configs/pipeline_v2_small.json`;
+2. вызывает `bio_music_pipeline.v2.train.train_pipeline()`;
+3. печатает JSON со ссылками на итоговые артефакты.
 
-`self.results` потом становится основой для `final_report.json`.
+### `generate_from_fasta_v2.py`
 
-### 2.2 `stage1_extract_bio_vectors()`
+Главная точка инференса.
 
-Роль:
+Что делает:
 
-- загрузить FASTA-последовательности,
-- при необходимости синтезировать демо-данные,
-- извлечь `bio_vectors.npy`,
-- сохранить `sequence_ids.json`.
+1. загружает обученный checkpoint;
+2. кодирует FASTA;
+3. применяет train-time calibration;
+4. генерирует токены;
+5. сохраняет MIDI и JSON-метаданные.
 
-Что важно в логике:
+### `run_pipeline.py`
 
-- если вход не передан явно, метод сначала ищет данные в `data/fasta`;
-- synthetic fallback разрешается только при `allow_synthetic=True`;
-- векторизация делается по одной последовательности, но с прогресс-баром `tqdm`.
+Старый orchestration entrypoint.
 
-### 2.3 `stage2_apply_sonification()`
+Он всё ещё в репозитории, но описывает прежнюю постановку с:
 
-Роль:
+- legacy tokenizer;
+- old paired creator;
+- old conditioned transformer;
+- старым evaluation loop.
 
-- создать `SonificationMapper`,
-- при необходимости откалибровать его на всём массиве биовекторов,
-- получить список `MusicalParameters`,
-- собрать `conditioning_vectors.npy`,
-- сохранить пример параметров в `musical_params_sample.json`.
+Использовать его как основной путь запуска больше не рекомендуется.
 
-Что метод добавляет в отчёт:
+## 2. Новый пакет `bio_music_pipeline.v2`
 
-- размерность conditioning-вектора,
-- распределение по ключам,
-- реальный диапазон темпов,
-- summary по калибровке.
+## 2.1 `bio_music_pipeline/v2/__init__.py`
 
-### 2.4 `_compute_key_distribution()`
+Экспортирует:
 
-Вспомогательная функция для сводки stage 2. Считает частоты ключей по списку `MusicalParameters`.
+- конфиги;
+- bio encoder;
+- dataset/tokenizer;
+- pairing;
+- модель;
+- train/generate entrypoints.
 
-### 2.5 `stage3_prepare_dataset()`
+Это новый компактный фасад всего актуального пайплайна.
 
-Роль:
+## 2.2 `bio_music_pipeline/v2/config.py`
 
-- найти MIDI-каталог;
-- при необходимости построить synthetic MIDI;
-- создать `MusicDataset`;
-- сохранить `train/val/test` списки;
-- проверить отсутствие data leakage.
+Главный слой конфигурации.
 
-Особенность:
+Содержит dataclass-конфиги:
 
-даже если каталог существует, но в нём нет `.mid/.midi`, код умеет построить synthetic fallback, если это явно разрешено.
+- `BioEncoderConfig`
+- `MusicDataConfig`
+- `PairingConfig`
+- `TrainingConfig`
+- `GenerationConfig`
+- `V2PipelineConfig`
 
-### 2.6 `_create_synthetic_midi_data()`
+Также содержит `load_v2_config()`, который:
 
-Строит набор искусственных MIDI:
+- поднимает значения по умолчанию;
+- читает JSON;
+- рекурсивно мержит пользовательские значения с dataclass-дефолтами.
 
-- случайный темп,
-- случайные ноты по мажорной гамме,
-- случайные длительности и velocity.
+Ключевая идея: конфиг больше не размазан по старым модулям и не держится на неявных полях.
 
-Это не научный режим, а аварийно-демонстрационный fallback.
+## 2.3 `bio_music_pipeline/v2/bio.py`
 
-### 2.7 `stage4_train_model()`
-
-Непарный режим обучения.
-
-Логика:
-
-1. синхронизирует `vocab_size` и специальные токены модели с `MIDIPreprocessor`;
-2. создаёт модель;
-3. проверяет gradient flow;
-4. запускает основной training loop;
-5. для каждого batch-а случайно подмешивает bio-векторы;
-6. валидирует модель;
-7. сохраняет лучший checkpoint.
-
-Этот путь присутствует для универсальности, но в исследовательском сценарии уступает paired-обучению.
-
-### 2.8 `stage4_train_model_with_paired_data()`
-
-Главный режим stage 4.
-
-Отличие от непарного режима:
-
-- batch уже содержит собственные `bio_vector`;
-- conditioning соответствует конкретному MIDI;
-- в checkpoint добавляется флаг `paired_training=True`.
-
-Всё остальное:
-
-- optimizer,
-- gradient clipping,
-- temperature update,
-- early stopping
-
-организовано аналогично базовому training loop.
-
-### 2.9 `_train_unconditional_baseline()`
-
-Мини-обучение baseline-модели `UnconditionalTransformer`:
-
-- использует тот же токенизированный train-набор;
-- обучается до `min(10, epochs)` эпох;
-- служит baseline для H1.
-
-### 2.10 `stage5_generate_and_evaluate()`
-
-Один из самых насыщенных методов всего проекта.
-
-По шагам:
-
-1. подгружает лучший checkpoint;
-2. строит baseline-генераторы;
-3. обучает `MarkovBaseline` на train-последовательностях;
-4. обучает `UnconditionalTransformer`;
-5. балансированно выбирает subset биовекторов по кластерам;
-6. генерирует 6 наборов последовательностей;
-7. конвертирует их в MIDI;
-8. запускает `run_comprehensive_evaluation()`;
-9. создаёт визуализации;
-10. генерирует HTML-анкету для human evaluation.
-
-Именно этот метод превращает просто обученную модель в полноценный исследовательский прогон с артефактами.
-
-### 2.11 `_sample_bio_indices_balanced()`
-
-Вспомогательная функция для sampling-а conditioned биовекторов. Старается обеспечить приблизительный баланс по cluster labels, чтобы H2 не работала на перекошенной выборке.
-
-### 2.12 `_compare_baselines()`
-
-Очень простой агрегатор для `stage5`, считающий:
-
-- среднее значение токенов,
-- стандартное отклонение,
-- среднее число уникальных токенов на последовательность.
-
-Это не основной научный метрик-блок, а быстрая табличная сводка.
-
-### 2.13 `save_final_report()`
-
-Собирает:
-
-- `final_report.json`
-- `summary.txt`
-
-Также на основе `hypothesis_tests` формирует `hypothesis_status` в человекочитаемом виде.
-
-### 2.14 `run()`
-
-Главный end-to-end сценарий. Последовательно запускает стадии 1–5, выбирая paired-обучение, если путь `paired_data_dir` существует.
-
-### 2.15 `main()`
-
-CLI-вход, который:
-
-- валидирует пути,
-- при необходимости сам читает FASTA из `--sequences`,
-- вызывает `pipeline.run()`,
-- завершает процесс кодом `0` или `1`.
-
-## 3. Пакет `bio_music_pipeline`
-
-## 3.1 `bio_music_pipeline/__init__.py`
-
-Содержит:
-
-- метаданные пакета;
-- `set_seed()`.
-
-`set_seed()` фиксирует:
-
-- `random`,
-- `numpy`,
-- `torch`,
-- `torch.cuda`,
-- детерминированность `cuDNN`.
-
-Это фундамент воспроизводимости проекта.
-
-## 3.2 Папка `extractors/`
-
-### `fasta_loader.py`
+Новый biologically informed encoder.
 
 Главные сущности:
 
-- `FastaSequence` — dataclass для одной FASTA-записи;
-- `FastaDatasetLoader` — универсальный загрузчик FASTA;
-- `load_user_fasta_dataset()` — удобная обёртка.
+- `BioEncodingResult`
+- `BiologicalSequenceEncoder`
 
-Ключевая логика:
+### Что делает `BiologicalSequenceEncoder`
 
-- чтение FASTA из файла;
-- поиск FASTA-файлов по директории;
-- загрузка из одной или нескольких директорий;
-- очистка последовательностей;
-- сводная статистика по длинам и GC content.
+1. читает FASTA через `Biopython`;
+2. определяет тип последовательности: `dna / rna / protein`;
+3. режет длинные записи на фрагменты;
+4. очищает последовательность;
+5. считает нуклеотидные и/или белковые признаки;
+6. при наличии `ViennaRNA` считает secondary structure признаки;
+7. переводит DNA в белок через longest ORF;
+8. собирает фиксированный `bio vector`;
+9. дополнительно собирает `control_profile`, пригодный для музыкального conditioning.
 
-### `bio_extractor.py`
+### Биологические блоки признаков
 
-Главная сущность: `BioVectorExtractor`.
+- nucleotide composition
+- entropy
+- GC/AT skew
+- k-mer distribution
+- ORF-derived protein features
+- `ProtParam` features:
+  - aromaticity
+  - instability index
+  - isoelectric point
+  - gravy
+  - molecular weight
+  - flexibility
+  - secondary structure fractions
+- RNA folding descriptors:
+  - MFE
+  - paired fraction
+  - loop fraction
+  - structural entropy
 
-Методы:
+Это принципиальное отличие от старого `bio_extractor.py`, который ограничивался простыми DNA statistics.
 
-- `read_fasta()`
-- `compute_nucleotide_frequencies()`
-- `compute_shannon_entropy()`
-- `compute_kmer_distribution()`
-- `compute_gc_skew()`
-- `compute_at_skew()`
-- `compute_windowed_statistics()`
-- `extract_features()`
-- `create_bio_vector()`
-- `process_file()`
+## 2.4 `bio_music_pipeline/v2/dataset.py`
 
-Отдельно экспортируется `extract_bio_vectors_from_sequences()` как функциональная обёртка.
-
-Этот файл — ядро биологической части проекта.
-
-## 3.3 Папка `sonification/`
-
-### `mapper.py`
+Новый polyphonic symbolic music layer.
 
 Главные сущности:
 
-- `MusicalParameters` — dataclass музыкальных параметров;
-- `SonificationMapper` — маппер bio → music;
-- `apply_sonification_rules()` — пакетная обёртка.
+- `NoteEvent`
+- `MusicSegment`
+- `PolyphonicMusicTokenizer`
+- `BioMusicPairDataset`
+- `load_music_corpus()`
+- `bootstrap_music21_corpus()`
 
-Ключевые методы класса:
+### `PolyphonicMusicTokenizer`
 
-- `fit_calibration()`
-- `get_calibration_summary()`
-- `_generate_chord_distributions()`
-- `map_nucleotide_frequencies_to_key()`
-- `map_entropy_to_tempo()`
-- `map_skew_to_pitch_range()`
-- `map_kmer_diversity_to_rhythm_complexity()`
-- `map_gc_content_to_scale_type()`
-- `map_windowed_stats_to_articulation()`
-- `map_features_to_chord_distribution()`
-- `bio_vector_to_musical_params()`
-- `create_conditioning_vector()`
+Токенизатор использует event-based схему:
 
-Это ключевой модуль интерпретируемого conditioning.
+- `BOS`
+- control tokens
+- `SEP`
+- `TIME_*`
+- `NOTE_*`
+- `DUR_*`
+- `VEL_*`
+- `EOS`
 
-## 3.4 Папка `data/`
+Ключевое отличие от старого токенизатора:
 
-### `dataset.py`
+- он не пытается делать `NOTE_ON/NOTE_OFF` с грубой time clipping;
+- он работает прямо с полифоническими onset-группами;
+- он несёт control-prefix в самой последовательности.
 
-Содержит два основных класса:
+### `load_music_corpus()`
 
-- `MIDIPreprocessor`
-- `MusicDataset`
+Этот метод:
 
-`MIDIPreprocessor` отвечает за:
+1. ищет MIDI/XML-корпус в `music.midi_dirs`;
+2. если корпус отсутствует, поднимает fallback через `music21`;
+3. парсит произведения;
+4. сегментирует их по тактам;
+5. фильтрует слишком бедные сегменты;
+6. считает музыкальные дескрипторы;
+7. возвращает список `MusicSegment`.
 
-- vocabulary,
-- чтение MIDI,
-- перевод MIDI в события,
-- перевод событий в токены,
-- перевод токенов в id,
-- фильтрацию по длительности.
+### Дескрипторы сегмента
 
-`MusicDataset` отвечает за:
+Для каждого сегмента считаются:
 
-- вызов `MIDIPreprocessor` по каталогу,
-- random split,
-- генераторы batch-ей,
-- сохранение файловых списков split-ов.
+- tempo
+- density
+- polyphony
+- register
+- harmony
+- mode
 
-### `paired_dataset_creator.py`
+Эти величины используются и для pairing, и как control signal для генератора.
 
-Содержит:
+## 2.5 `bio_music_pipeline/v2/pairing.py`
 
-- `MIDIFeatures`
+Новый pairing-слой.
+
+Главные сущности:
+
 - `PairedSample`
-- `PairedDatasetCreator`
-- CLI `main()`
+- `calibrate_bio_profiles()`
+- `build_paired_dataset()`
+- `save_pairing_artifacts()`
 
-Главные методы:
+### Что изменилось относительно старого pairing
 
-- `extract_midi_features()`
-- `_compute_pitch_entropy()`
-- `_compute_velocity_entropy()`
-- `scan_midi_files()`
-- `load_and_extract_bio_vectors()`
-- `create_pairs()`
-- `save_paired_dataset()`
-- `run()`
+Старый контур делал rank-matching по одному scalar complexity score. Новый:
 
-Это ключ к превращению проекта из «демо with bio-conditioning» в более формальный исследовательский стенд.
+1. берёт многомерный `control_profile` из био-энкодера;
+2. калибрует его под реальное распределение музыкального корпуса;
+3. считает weighted distance до music descriptor vectors;
+4. выбирает `top-k` ближайших сегментов;
+5. создаёт many-to-many pairing с весами.
 
-### `paired_dataset.py`
+Это даёт модели существенно более осмысленное conditioning-пространство.
 
-Главная сущность: `PairedMusicDataset`, наследник `MusicDataset`.
+## 2.6 `bio_music_pipeline/v2/model.py`
 
-Его задача:
+Новая компактная модель `ControlConditionedTransformer`.
 
-- прочитать paired-артефакты,
-- заново токенизировать MIDI,
-- сформировать train/val/test уже по paired-записям,
-- отдавать batch-и, где есть `token_ids`, `bio_vector`, `conditioning_vector`, `metadata`.
+### Архитектура
 
-### `universal_loader.py`
+1. token embedding
+2. position embedding
+3. `bio_projection` в несколько memory tokens
+4. `TransformerDecoder`
+5. `lm_head`
+6. `descriptor_head`
 
-Вспомогательный инфраструктурный модуль для пользовательских датасетов.
+### Как модель получает conditioning
 
-Главные сущности:
+Условие подаётся двумя путями:
 
-- `DataLoaderConfig`
-- `UniversalDataLoader`
-- `setup_user_datasets()`
+- через discrete control tokens в префиксе последовательности;
+- через continuous bio embedding как cross-attention memory.
 
-Он отвечает не за научную логику, а за удобство работы с разными директориями данных.
+### `compute_loss()`
 
-## 3.5 Папка `models/`
+Функция потерь состоит из:
 
-### `transformer.py`
+- token cross-entropy
+- descriptor alignment loss
 
-Главные сущности:
+То есть модель учится не только предсказывать токены, но и сохранять заданный музыкальный профиль.
 
-- `PositionalEncoding`
-- `GumbelSoftmaxSampler`
-- `BioConditioningModule`
-- `AuxiliaryLanguageModel`
-- `BioConditionedTransformerDecoder`
-- `create_bio_music_model()`
+### `generate()`
 
-По сути весь нейросетевой стек проекта находится именно здесь.
+Метод генерации:
 
-Ключевые методы `BioConditionedTransformerDecoder`:
+- стартует с `BOS + control tokens + SEP`;
+- использует `top-k/top-p` sampling;
+- запрещает `EOS` раньше `min_new_tokens`;
+- корректно останавливается по `EOS`.
 
-- `_init_weights()`
-- `generate_square_subsequent_mask()`
-- `encode_tokens()`
-- `forward()`
-- `compute_loss()`
-- `generate()`
-- `update_temperature()`
+Это принципиально чище старого генератора, где stopping logic и serialization были источником ошибок.
 
-Если читать код как архитектурное описание, это главный файл проекта.
+## 2.7 `bio_music_pipeline/v2/train.py`
 
-## 3.6 Папка `baselines/`
+Главный orchestration-модуль обучения.
 
-### `generators.py`
+### `train_pipeline()`
 
-Содержит:
+Внутри он:
 
-- `_extract_token_groups()`
-- `RandomBaseline`
-- `MarkovBaseline`
-- `UnconditionalTransformer`
-- `RuleBasedGenerator`
-- `RandomVectorControl`
-- `create_baselines()`
+1. загружает конфиг;
+2. фиксирует seed;
+3. кодирует FASTA;
+4. строит музыкальный корпус;
+5. делает split отдельно по bio и music;
+6. строит pairing для train/val/test;
+7. создаёт DataLoader’ы;
+8. создаёт `ControlConditionedTransformer`;
+9. обучает модель;
+10. сохраняет лучший checkpoint;
+11. прогоняет test evaluation;
+12. делает smoke generation.
 
-Роли baseline-ов:
+### Что сохраняется
 
-- `RandomBaseline` — случайная нижняя граница;
-- `MarkovBaseline` — статистическая n-gram модель;
-- `UnconditionalTransformer` — честный нейросетевой baseline без conditioning;
-- `RuleBasedGenerator` — «процедурная музыка» напрямую по musical params;
-- `RandomVectorControl` — проверка, несут ли реальные биовекторы что-то сверх случайных векторов.
+- `resolved_config.json`
+- `pair_manifest.json`
+- `pair_calibration.npz`
+- `best_model.pt`
+- `metrics.json`
+- `sample_from_training_pipeline.mid`
 
-## 3.7 Папка `evaluation/`
+## 2.8 `bio_music_pipeline/v2/generate.py`
 
-### `validator.py`
+Независимый inference-слой.
 
-Самый важный файл оценочного контура.
+Главная функция:
 
-Содержит:
+- `generate_music_from_fasta()`
 
-- `StatisticalValidator`
-- `InformationTransferClassifier`
-- `HumanEvaluationSurvey`
-- `run_comprehensive_evaluation()`
-- `compute_sequence_quality()`
-- `compute_musical_quality_scores()`
+Что она делает:
 
-Логически этот файл отвечает за формальный ответ на вопрос: «работает ли conditioning статистически?»
+1. загружает config и checkpoint;
+2. создаёт encoder и tokenizer;
+3. кодирует нужную FASTA-запись;
+4. применяет calibration из checkpoint;
+5. строит control tokens;
+6. вызывает `model.generate()`;
+7. пишет MIDI и JSON-метаданные.
 
-### `musical_quality.py`
+Это важно архитектурно: генерация больше не зависит от train pipeline напрямую.
 
-Содержит `MusicalQualityMetrics` и `compare_musical_quality()`.
+## 3. Тесты
 
-Это слой предметно-музыкальных метрик.
+### `tests/test_v2_pipeline.py`
 
-### `diversity.py`
+Содержит три smoke-проверки:
 
-Содержит `DiversityAnalyzer`.
+1. `bio encoder` на demo FASTA
+2. roundtrip tokenization
+3. forward/generate для модели
 
-Это слой анализа разнообразия:
+Эти тесты не заменяют полноценный training run, но очень быстро ловят структурные поломки.
 
-- попарные расстояния,
-- novelty,
-- vocabulary coverage,
-- intra/inter variance.
+## 4. Конфиг по умолчанию
 
-### `ablation.py`
+### `configs/pipeline_v2_small.json`
 
-Содержит:
+Это основной рабочий конфиг для текущего устройства.
 
-- схемы индексов биовектора,
-- функции абляции,
-- `run_ablation_study()`,
-- статистику по последовательностям после абляции.
+Он:
 
-### `visualizations.py`
+- пишет в `results/v2_music21_rtx2060`
+- использует fallback polyphonic corpus при отсутствии своего MIDI-корпуса
+- ограничивает модель и batch-size под `RTX 2060 6 GB`
+- включает mixed precision
 
-Содержит:
+## 5. Legacy-часть репозитория
 
-- `visualize_bio_vectors()`
-- `plot_correlation_heatmap()`
-- `render_piano_roll()`
-- `visualize_attention()`
-- `create_all_visualizations()`
+Всё ниже сохранено, но больше не является основной архитектурой:
 
-Это мост между кодом и визуальным исследовательским материалом.
+- `bio_music_pipeline/extractors/*`
+- `bio_music_pipeline/data/*`
+- `bio_music_pipeline/models/transformer.py`
+- `run_pipeline.py`
+- `generate_from_fasta.py`
+- старый web backend
 
-### `perplexity_metrics.py`
+Эти файлы полезны:
 
-Содержит:
-
-- `ShannonEntropyMetrics`
-- `compute_model_perplexity()`
-- `compute_complexity_for_maestro()`
-
-Это дополнительный оценочный блок для сложности музыкального материала.
-
-### `idyom_integration.py`
-
-Содержит:
-
-- `IDyOMWrapper`
-- `compare_idyom_vs_shannon()`
-- `plot_idyom_vs_shannon()`
-
-Это адаптер между основным проектом и встроенным `IDyOMpy`.
-
-### `__init__.py`
-
-Экспортирует наружу ключевые оценочные инструменты. Это удобная точка импорта для `run_pipeline.py`.
-
-## 3.8 Папка `utils/`
-
-### `helpers.py`
-
-Содержит:
-
-- `tokens_to_midi()`
-- `batch_tokens_to_midi()`
-- `check_gradient_flow()`
-- `verify_no_data_leak()`
-- `create_sample_bio_sequences()`
-- `GradientCheckpoint`
-
-Это вспомогательная, но очень важная часть пайплайна: без неё не было бы ни отладки обучения, ни сохранения генераций в MIDI.
-
-## 4. Веб-слой
-
-## 4.1 `web/app.py`
-
-Flask-приложение.
-
-Маршруты:
-
-- `/`
-- `/api/generate`
-- `/api/download/<session_id>/<file_type>`
-- `/api/status`
-- `/api/survey/submit`
-- `/api/survey/results`
-
-Что важно:
-
-- backend не обучает модель, а только выполняет inference;
-- модель инициализируется один раз и переиспользуется;
-- есть обработка ошибок размера файла и внутренних исключений.
-
-## 4.2 `web/generator.py`
-
-Главный backend-класс: `BioMusicGenerator`.
-
-Его обязанности:
-
-- найти конфиг и checkpoint;
-- загрузить модель;
-- поднять `BioVectorExtractor`;
-- поднять `SonificationMapper`;
-- поднять `MIDIPreprocessor`;
-- провалидировать FASTA;
-- выполнить generation;
-- сохранить MIDI.
-
-Ключевые методы:
-
-- `_resolve_default_config_path()`
-- `_resolve_default_model_path()`
-- `initialize()`
-- `validate_fasta()`
-- `generate()`
-- `is_ready()`
-- `get_error()`
-
-Также внизу реализован singleton `get_generator()`.
-
-## 4.3 `web/midi_to_audio.py`
-
-Модуль-заглушка:
-
-- `midi_to_wav()` сейчас всегда возвращает `False`;
-- `check_audio_synthesizer()` сообщает, что аудио disabled;
-- `get_install_instructions()` объясняет, почему.
-
-Это важно описывать честно: текущая web-версия отдаёт MIDI, но не полноценный WAV.
-
-## 4.4 `web/templates/index.html`
-
-Основная HTML-страница:
-
-- вкладки paste/upload,
-- поле FASTA,
-- drag-and-drop файл,
-- блок loading,
-- блок error,
-- блок results,
-- карточки musical parameters,
-- кнопка download MIDI.
-
-## 4.5 `web/static/js/app.js`
-
-Frontend-логика:
-
-- переключение вкладок,
-- обработка drag-and-drop,
-- вызов `/api/generate`,
-- показ ошибок,
-- показ результатов,
-- keyboard shortcut `Ctrl/Cmd + Enter`,
-- проверка статуса сервера.
-
-## 4.6 `web/static/css/style.css`
-
-Оформление интерфейса.
-
-По коду видно, что это законченный визуальный слой с:
-
-- CSS-переменными,
-- карточками,
-- табами,
-- блоками загрузки,
-- стилями кнопок,
-- секцией результатов.
-
-## 5. Исследовательские утилиты и сервисные скрипты
-
-### `tools/run_multi_seed_experiments.py`
-
-Отвечает за:
-
-- парсинг списка seed;
-- генерацию seed-specific config;
-- вызов `run_pipeline.py` через `subprocess`;
-- сбор per-seed summary;
-- вычисление aggregate metrics и confidence intervals.
-
-### `tools/generate_research_artifacts.py`
-
-Отвечает за:
-
-- поиск всех `final_report.json`;
-- извлечение стандартизированных строк метрик;
-- запись summary CSV/JSON;
-- генерацию графиков:
-  - diversity,
-  - p-value overview,
-  - conditioning gaps;
-- сборку `research_artifacts.md`.
-
-### `tools/clean_pipeline_artifacts.sh`
-
-Безопасная очистка результатов.
-
-По умолчанию это dry-run, реальное удаление происходит только при `--apply`.
-
-## 6. Встроенный внешний пакет `tools/IDyOMpy`
-
-Этот каталог не написан в рамках основного пайплайна с нуля, а включён в репозиторий как отдельный внешний инструмент.
-
-Ключевые части:
-
-- `App.py` — CLI-вход IDyOMpy;
-- `idyom/idyom.py` — высокая логика модели;
-- `idyom/data.py` — парсинг MIDI и viewpoint representation;
-- `idyom/longTermModel.py` — long-term model;
-- `idyom/markovChain.py` — марковские цепи порядка `n`;
-- `idyom/markovChainOrder0.py` — модель нулевого порядка;
-- `idyom/myMidi.py` — чтение монофонического MIDI;
-- `unittests/*.py` — unit tests upstream-проекта.
-
-В основном проекте этот пакет не переписывается, а оборачивается через `bio_music_pipeline/evaluation/idyom_integration.py`.
-
-## 7. Как данные протекают через код
-
-Сжатая цепочка:
-
-1. `run_pipeline.py`
-2. `FastaDatasetLoader` / `BioVectorExtractor`
-3. `SonificationMapper`
-4. `MusicDataset` или `PairedMusicDataset`
-5. `BioConditionedTransformerDecoder`
-6. `batch_tokens_to_midi()`
-7. `run_comprehensive_evaluation()`
-8. `create_all_visualizations()`
-9. `HumanEvaluationSurvey`
-10. `save_final_report()`
-
-То есть у проекта очень чёткая структура: каждый модуль отвечает за один слой, и только `run_pipeline.py` знает обо всей цепочке целиком.
-
-## 8. Как читать код, если нужен именно дипломный разбор
-
-Лучший порядок чтения исходников:
-
-1. `run_pipeline.py`
-2. `bio_music_pipeline/extractors/bio_extractor.py`
-3. `bio_music_pipeline/sonification/mapper.py`
-4. `bio_music_pipeline/data/dataset.py`
-5. `bio_music_pipeline/data/paired_dataset_creator.py`
-6. `bio_music_pipeline/models/transformer.py`
-7. `bio_music_pipeline/baselines/generators.py`
-8. `bio_music_pipeline/evaluation/validator.py`
-9. `bio_music_pipeline/evaluation/musical_quality.py`
-10. `web/generator.py`
-
-Такой порядок соответствует и логике пайплайна, и логике академического объяснения.
+- для исторического сравнения;
+- для разбора исходных архитектурных решений;
+- для объяснения, почему понадобился `v2`.

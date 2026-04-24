@@ -1,0 +1,72 @@
+{
+  "output_dir": "results/v2_music21_rtx2060",
+  "fasta_path": "data/fasta/quick_sample.fa",
+  "bio": {
+    "min_sequence_length": 90,
+    "max_sequence_length": 12000,
+    "fragment_length": 1800,
+    "fragment_stride": 900,
+    "max_fragments_per_record": 24,
+    "kmer_sizes": [1, 2, 3],
+    "max_kmer_features": 84,
+    "use_vienna_rna": true,
+    "use_protein_features": true,
+    "translate_longest_orf": true,
+    "embedding_dim": 192
+  },
+  "music": {
+    "midi_dirs": ["data/midi/polyphonic_music21"],
+    "use_music21_corpus_fallback": true,
+    "music21_composers": ["bach"],
+    "max_music21_files": 96,
+    "bars_per_segment": 4,
+    "segment_hop_bars": 2,
+    "steps_per_beat": 4,
+    "min_notes_per_segment": 12,
+    "min_polyphony_ratio": 0.1,
+    "pitch_range_min": 24,
+    "pitch_range_max": 96,
+    "velocity_bins": 8,
+    "duration_bins": 32,
+    "descriptor_bins": 8,
+    "max_events": 768
+  },
+  "pairing": {
+    "top_k": 3,
+    "temperature": 0.25,
+    "descriptor_weight_harmony": 1.2,
+    "descriptor_weight_polyphony": 1.1,
+    "descriptor_weight_density": 1.0,
+    "descriptor_weight_register": 0.9,
+    "descriptor_weight_tempo": 0.8,
+    "descriptor_weight_mode": 0.6
+  },
+  "training": {
+    "seed": 42,
+    "device": "auto",
+    "num_epochs": 10,
+    "batch_size": 4,
+    "grad_accum_steps": 4,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.01,
+    "max_grad_norm": 1.0,
+    "val_fraction": 0.15,
+    "test_fraction": 0.1,
+    "patience": 4,
+    "mixed_precision": true,
+    "num_workers": 0,
+    "d_model": 256,
+    "n_heads": 4,
+    "n_layers": 4,
+    "dim_feedforward": 1024,
+    "dropout": 0.15,
+    "max_seq_len": 896
+  },
+  "generation": {
+    "max_new_tokens": 512,
+    "temperature": 0.92,
+    "top_k": 24,
+    "top_p": 0.92,
+    "min_new_tokens": 96
+  }
+}

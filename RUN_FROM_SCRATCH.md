@@ -1,173 +1,223 @@
-# Полный запуск с нуля (только FASTA + MIDI)
+# Полный запуск с нуля: актуальный `v2` пайплайн
 
-Этот документ — пошаговая инструкция, как запустить проект с нуля, если у вас есть только:
-- датасет биопоследовательностей (`.fasta/.fa/.fna/...`)
-- датасет MIDI (`.mid/.midi`)
+Этот документ описывает **текущий рабочий способ** запуска проекта после последних изменений. Основной контур теперь находится в `bio_music_pipeline/v2` и рассчитан на:
 
-## 1) Требования
+- полифоническую музыку без сведения к монофонии;
+- biologically informed encoding из FASTA;
+- обучение компактной conditional Transformer-модели на `RTX 2060 6 GB`;
+- отдельный проверяемый путь `train -> checkpoint -> generate`.
 
-- macOS / Linux
-- `python3` (рекомендуется 3.10+)
-- `pip`
-- (опционально) `ffmpeg` для некоторых аудио-сценариев веб-части
+Старый стек `run_pipeline.py` и связанные модули сохранены в репозитории как legacy-контур, но **не являются рекомендуемым способом запуска**.
 
-Проверка:
+## 1. Что нужно на входе
 
-```bash
-python3 --version
-pip3 --version
+- FASTA-файл или каталог FASTA-файлов
+- MIDI-корпус
+
+Если своего полифонического MIDI-корпуса пока нет, `v2` умеет автоматически поднять fallback-корпус через `music21` и экспортировать локальные полифонические MIDI в `data/midi/polyphonic_music21/`.
+
+## 2. Требования
+
+- Windows 11 или другой современный desktop environment
+- Python `3.12`
+- NVIDIA GPU, желательно CUDA-совместимая
+- для текущего локального сценария проверено на `RTX 2060 6 GB`
+
+## 3. Подготовка окружения
+
+Из корня проекта:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install torch --index-url https://download.pytorch.org/whl/cu126
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## 2) Клонирование и вход в проект
+## 4. Проверка CUDA
 
-```bash
-git clone <URL_РЕПОЗИТОРИЯ>
-cd biosonification
+```powershell
+@'
+import torch
+print("torch:", torch.__version__)
+print("cuda:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("device:", torch.cuda.get_device_name(0))
+    print("memory:", torch.cuda.get_device_properties(0).total_memory)
+'@ | .\.venv\Scripts\python.exe -
 ```
 
-## 3) Окружение и зависимости
+Ожидаемое поведение:
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+- `cuda: True`
+- корректное имя GPU
+
+## 5. Подготовка данных
+
+Минимальная структура:
+
+```text
+data/
+  fasta/
+    quick_sample.fa
+  midi/
+    polyphonic_music21/      # может создаться автоматически
 ```
 
-## 4) Подготовка структуры данных
+Если у вас есть свой полифонический корпус, укажите путь к нему в `configs/pipeline_v2_small.json`:
 
-Создайте стандартные папки:
+- поле `music.midi_dirs`
 
-```bash
-mkdir -p data/fasta data/midi
+Если у вас свой FASTA-корпус:
+
+- замените `fasta_path`
+- при необходимости настройте `bio.fragment_length`, `bio.fragment_stride`, `bio.max_fragments_per_record`
+
+## 6. Проверка кода до запуска обучения
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_v2_pipeline.py
 ```
 
-Скопируйте данные:
+Ожидаемое поведение:
 
-- все FASTA-файлы в `data/fasta/`
-- все MIDI-файлы в `data/midi/` (можно с подпапками)
+- `3 passed`
 
-Пример:
+## 7. Запуск обучения
 
-```bash
-cp /path/to/your_fasta_dataset/* data/fasta/
-cp -R /path/to/your_midi_dataset/* data/midi/
+Базовый запуск:
+
+```powershell
+.\.venv\Scripts\python.exe train_bio_music_v2.py --config configs\pipeline_v2_small.json
 ```
 
-## 5) Проверка, что файлы обнаружены
+Что делает этот запуск:
 
-```bash
-python3 scan_datasets.py
-```
+1. читает FASTA и режет последовательности на фрагменты;
+2. строит `bio embedding` и `control profile`;
+3. поднимает полифонический музыкальный корпус;
+4. сегментирует MIDI на полифонические окна;
+5. делает pairing по многомерным музыкальным дескрипторам;
+6. обучает conditional Transformer;
+7. сохраняет checkpoint, метрики и smoke MIDI.
 
-Если нужно сканировать конкретный путь:
-
-```bash
-python3 scan_datasets.py --path /absolute/path/to/data
-```
-
-## 6) (Рекомендуется) очистка старых артефактов
-
-```bash
-./tools/clean_pipeline_artifacts.sh
-./tools/clean_pipeline_artifacts.sh --apply
-```
-
-## 7) Создание paired-данных (важно для научного режима)
-
-Лучший режим в этом проекте — обучение на парных данных MIDI↔bio.
-
-```bash
-python3 -m bio_music_pipeline.data.paired_dataset_creator \
-  --midi-dir data/midi \
-  --fasta-path data/fasta \
-  --output-dir results/paired_data \
-  --config configs/pipeline_full_paired.json
-```
-
-После этого должны появиться:
-- `results/paired_data/paired_data.json`
-- `results/paired_data/paired_bio_vectors.npy`
-- `results/paired_data/paired_conditioning_vectors.npy`
-
-## 8) Запуск пайплайна (полный режим)
-
-```bash
-python3 run_pipeline.py \
-  --config configs/pipeline_full_paired.json \
-  --midi-dir data/midi \
-  --paired-data results/paired_data
-```
-
-Это выполнит:
-1. извлечение bio-векторов из FASTA  
-2. сонификацию (с калибровкой)  
-3. подготовку MIDI-датасета  
-4. обучение модели  
-5. генерацию, оценку, визуализации, отчёты  
-
-## 9) Где смотреть результаты
+## 8. Что должно появиться после обучения
 
 Основные артефакты:
 
-- `results/full_paired_run/final_report.json`
-- `results/full_paired_run/summary.txt`
-- `results/full_paired_run/reports/evaluation_results.json`
-- `results/full_paired_run/visualizations/` (графики)
-- `results/full_paired_run/midi/` (сгенерированные MIDI)
-- `results/full_paired_run/surveys/human_evaluation_survey.html`
+- `results/v2_music21_rtx2060/resolved_config.json`
+- `results/v2_music21_rtx2060/pairing/pair_manifest.json`
+- `results/v2_music21_rtx2060/pairing/pair_calibration.npz`
+- `results/v2_music21_rtx2060/checkpoints/best_model.pt`
+- `results/v2_music21_rtx2060/metrics.json`
+- `results/v2_music21_rtx2060/smoke/sample_from_training_pipeline.mid`
 
-## 10) Построение сводных графиков и отчёта по всем прогонам
+## 9. Как проверять корректность обучения
 
-```bash
-python3 tools/generate_research_artifacts.py \
-  --roots results \
-  --output-dir results/research_artifacts
+### Во время запуска
+
+Проверьте, что процесс не падает и создаются промежуточные каталоги:
+
+- `results/v2_music21_rtx2060/pairing/`
+- `results/v2_music21_rtx2060/checkpoints/`
+
+### После запуска
+
+Откройте:
+
+```powershell
+Get-Content results\v2_music21_rtx2060\metrics.json
 ```
 
-Получите:
-- `results/research_artifacts/research_artifacts.md`
-- `results/research_artifacts/artifacts_summary.csv`
-- `results/research_artifacts/*.png`
+Что считать нормальным:
 
-## 11) (Опционально) мульти-seed эксперименты для стабильности выводов
+- `device` = `cuda`
+- `history[*].val.loss` в среднем уменьшается по эпохам
+- checkpoint существует
+- smoke MIDI существует
 
-```bash
-python3 tools/run_multi_seed_experiments.py \
-  --base-config configs/pipeline_full_paired.json \
-  --seeds 7,42,123,2026,31415 \
-  --midi-dir data/midi \
-  --paired-data results/paired_data
+## 10. Запуск генерации из FASTA
+
+После обучения:
+
+```powershell
+.\.venv\Scripts\python.exe generate_from_fasta_v2.py --config configs\pipeline_v2_small.json --checkpoint results\v2_music21_rtx2060\checkpoints\best_model.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\generated_from_fasta.mid --metadata-output results\v2_generation\generated_from_fasta.json
 ```
 
-Сводка будет в:
-- `results/multi_seed/per_seed_summary.csv`
-- `results/multi_seed/aggregate_metrics.json`
+## 11. Как проверять корректность генератора
 
-## 12) Самый короткий сценарий (если нужно просто «завести»)
+Проверьте, что появились:
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-mkdir -p data/fasta data/midi
-# скопировать свои fasta/midi в эти папки
-python3 -m bio_music_pipeline.data.paired_dataset_creator --midi-dir data/midi --fasta-path data/fasta --output-dir results/paired_data --config configs/pipeline_full_paired.json
-python3 run_pipeline.py --config configs/pipeline_full_paired.json --midi-dir data/midi --paired-data results/paired_data
-python3 tools/generate_research_artifacts.py --roots results --output-dir results/research_artifacts
+- `results/v2_generation/generated_from_fasta.mid`
+- `results/v2_generation/generated_from_fasta.json`
+
+Быстрая техническая проверка:
+
+```powershell
+@'
+from music21 import converter
+score = converter.parse("results/v2_generation/generated_from_fasta.mid")
+notes = list(score.flatten().notes)
+print("notes:", len(notes))
+print("duration:", float(score.highestTime))
+'@ | .\.venv\Scripts\python.exe -
 ```
 
-## 13) Частые проблемы
+Нормальный результат:
 
-- `python: command not found`  
-  Используйте `python3`.
+- `notes > 0`
+- ненулевая длительность
 
-- `No valid MIDI files found`  
-  Проверьте расширения `.mid/.midi` и что файлы реально не пустые/не битые.
+Если нужна ещё одна sanity-проверка на полифонию:
 
-- `No biological sequences provided`  
-  Проверьте, что в `data/fasta` есть корректные FASTA-файлы.
+```powershell
+@'
+from music21 import converter
+from collections import Counter
+score = converter.parse("results/v2_generation/generated_from_fasta.mid")
+notes = list(score.flatten().notes)
+onsets = Counter(round(float(n.offset), 3) for n in notes)
+print("polyphonic_onsets:", sum(v > 1 for v in onsets.values()))
+print("max_simultaneous:", max(onsets.values()) if onsets else 0)
+'@ | .\.venv\Scripts\python.exe -
+```
 
-- CUDA/GPU не используется  
-  Это не блокер: пайплайн работает и на CPU, просто медленнее.
+## 12. Где менять параметры под свой датасет
 
+Основной файл:
+
+- `configs/pipeline_v2_small.json`
+
+Чаще всего меняются:
+
+- `output_dir`
+- `fasta_path`
+- `music.midi_dirs`
+- `music.max_music21_files`
+- `training.num_epochs`
+- `training.batch_size`
+- `training.grad_accum_steps`
+- `generation.temperature`
+- `generation.top_k`
+- `generation.top_p`
+
+## 13. Что уже проверено локально
+
+На текущем устройстве и в текущем состоянии репозитория проверено:
+
+- окружение установлено;
+- `torch` видит `RTX 2060`;
+- `pytest` проходит;
+- обучение `v2` завершается успешно;
+- сохраняется `best_model.pt`;
+- отдельный inference-скрипт генерирует MIDI из FASTA;
+- smoke и final generation содержат полифонические onset’ы.
+
+## 14. Legacy-контур
+
+Старые команды вида:
+
+- `python run_pipeline.py ...`
+- `python -m bio_music_pipeline.data.paired_dataset_creator ...`
+
+относятся к прежнему стеку. Они оставлены для исторической совместимости и анализа старой архитектуры, но не описывают текущий рекомендованный production-like сценарий запуска.

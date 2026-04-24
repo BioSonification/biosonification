@@ -481,6 +481,30 @@ python -m web.app
 
 `web/midi_to_audio.py` в текущем состоянии намеренно отключает конвертацию MIDI→WAV: в коде прямо зафиксировано, что это сделано из-за несовместимости CLI `fluidsynth 2.5.3`. Поэтому канонический путь прослушивания в этой версии проекта — скачивание MIDI и открытие во внешнем MIDI-плеере.
 
+## V2 pipeline: polyphonic bio-conditioned generation
+
+В репозитории теперь есть новый независимый стек `bio_music_pipeline/v2`, который исправляет основные архитектурные проблемы исходного пайплайна:
+
+- работает с полифоническими сегментами, а не с монофонической выжимкой;
+- строит `bio embedding` из FASTA с библиотечными биологическими признаками, включая `ProtParam` и RNA folding через `ViennaRNA`;
+- калибрует био-профиль под эмпирическое распределение музыкального корпуса;
+- обучает компактный conditional Transformer под `RTX 2060 6 GB`;
+- умеет запускаться даже без внешнего MIDI-корпуса, используя локально экспортируемый polyphonic fallback из `music21`.
+
+Быстрый запуск нового пайплайна:
+
+```bash
+.venv\Scripts\python.exe train_bio_music_v2.py --config configs/pipeline_v2_small.json
+.venv\Scripts\python.exe generate_from_fasta_v2.py --config configs/pipeline_v2_small.json --checkpoint results\v2_music21_rtx2060\checkpoints\best_model.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\generated_from_fasta.mid
+```
+
+Что создаётся после обучения:
+
+- `results/v2_music21_rtx2060/checkpoints/best_model.pt`
+- `results/v2_music21_rtx2060/metrics.json`
+- `results/v2_music21_rtx2060/pairing/*`
+- `results/v2_music21_rtx2060/smoke/sample_from_training_pipeline.mid`
+
 ## Главные директории проекта
 
 | Каталог | Смысл |
