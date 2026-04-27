@@ -144,11 +144,14 @@ def download_file(session_id, file_type):
 def status():
     """Check application status."""
     generator = get_generator()
+    if not generator.is_ready() and generator.get_error() is None:
+        generator.initialize()
     synth_status = check_audio_synthesizer()
 
     return jsonify({
         'ready': generator.is_ready(),
         'error': generator.get_error() if not generator.is_ready() else None,
+        'generator': generator.status_payload(),
         'audio_synthesizers': synth_status,
         'audio_enabled': synth_status['fluidsynth'] or synth_status['timidity']
     })

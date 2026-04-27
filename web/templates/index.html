@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BioSonification - Music from DNA</title>
+    <title>BioSonification - Structured Music from Biology</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -35,14 +35,14 @@
                 </svg>
                 <h1>BioSonification</h1>
             </div>
-            <p class="tagline">Transform biological sequences into unique music</p>
+            <p class="tagline">Generate structured harmony and melody from biological sequences</p>
         </header>
 
         <!-- Main Content -->
         <main class="main-content">
             <!-- Input Section -->
             <section class="input-section card">
-                <h2>Input Your DNA Sequence</h2>
+                <h2>Input a Biological Sequence</h2>
                 
                 <!-- Tabs -->
                 <div class="tabs">
@@ -69,7 +69,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                             <line x1="12" y1="16" x2="12" y2="12"/>
                             <line x1="12" y1="8" x2="12.01" y2="8"/>
                         </svg>
-                        Minimum 100 nucleotides. Accepts A, C, G, T only.
+                        Minimum 90 symbols. FASTA DNA, RNA, or protein sequences are accepted.
                     </div>
                 </div>
 
@@ -107,7 +107,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                 <div class="loading-spinner">
                     <div class="spinner"></div>
                     <h3>Generating your music...</h3>
-                    <p>Analyzing DNA sequence and composing music</p>
+                    <p>Encoding biological features and composing harmony plus melody</p>
                 </div>
             </section>
 
@@ -130,7 +130,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                         <polyline points="22 4 12 14.01 9 11.01"/>
                     </svg>
-                    Music Generated Successfully!
+                    Structured MIDI Generated Successfully!
                 </h2>
 
                 <!-- Audio Player -->
@@ -159,12 +159,12 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
-                    Download MIDI File
+                    Download Harmony + Melody MIDI
                 </a>
 
                 <!-- Musical Parameters -->
                 <div class="params-section">
-                    <h3>Musical Parameters from Your DNA</h3>
+                    <h3>Structured Generation Metadata</h3>
                     <div class="params-grid">
                         <div class="param-card">
                             <div class="param-icon">
@@ -185,7 +185,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                                 </svg>
                             </div>
                             <div class="param-value" id="param-key">-</div>
-                            <div class="param-name">Key</div>
+                            <div class="param-name">Tonal Hint</div>
                         </div>
                         <div class="param-card">
                             <div class="param-icon">
@@ -194,7 +194,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                                 </svg>
                             </div>
                             <div class="param-value" id="param-pitch-range">-</div>
-                            <div class="param-name">Pitch Range</div>
+                            <div class="param-name">Sequence Type</div>
                         </div>
                         <div class="param-card">
                             <div class="param-icon">
@@ -204,7 +204,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                                 </svg>
                             </div>
                             <div class="param-value" id="param-scale-type">-</div>
-                            <div class="param-name">Scale Type</div>
+                            <div class="param-name">Harmony Bars</div>
                         </div>
                         <div class="param-card">
                             <div class="param-icon">
@@ -215,7 +215,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                                 </svg>
                             </div>
                             <div class="param-value" id="param-rhythm">-</div>
-                            <div class="param-name">Rhythm Complexity</div>
+                            <div class="param-name">Melody Notes</div>
                         </div>
                         <div class="param-card">
                             <div class="param-icon">
@@ -224,7 +224,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                                 </svg>
                             </div>
                             <div class="param-value" id="param-dynamic-range">-</div>
-                            <div class="param-name">Dynamic Range</div>
+                            <div class="param-name">Device</div>
                         </div>
                     </div>
                 </div>
@@ -232,7 +232,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                 <!-- Sequence Info -->
                 <div class="sequence-info">
                     <p><strong>Sequence:</strong> <span id="seq-header">-</span></p>
-                    <p><strong>Length:</strong> <span id="seq-length">-</span> nucleotides</p>
+                    <p><strong>Length:</strong> <span id="seq-length">-</span> symbols</p>
                 </div>
 
                 <!-- Generate Another -->
@@ -248,7 +248,7 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
 
         <!-- Footer -->
         <footer class="footer">
-            <p>BioSonification — Transforming DNA into Music</p>
+            <p>BioSonification — Structured symbolic music from biological conditioning signals</p>
             <p class="disclaimer">
                 Disclaimer: This system uses bio-vectors as structured conditioning signals. 
                 No causal relationship between genes and music is claimed or demonstrated.

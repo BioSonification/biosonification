@@ -151,3 +151,9 @@ def load_v2_config(config_path: Optional[str] = None) -> V2PipelineConfig:
     with open(path, "r", encoding="utf-8") as handle:
         payload = json.load(handle)
     return _merge_dataclass(config, payload)
+
+
+def v2_config_from_dict(payload: Dict[str, Any]) -> V2PipelineConfig:
+    """Build a v2 config from a dictionary, preserving dataclass defaults."""
+
+    return _merge_dataclass(V2PipelineConfig(), payload)

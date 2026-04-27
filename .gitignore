@@ -1,4 +1,3 @@
-```
 # Dependencies
 __pycache__/
 *.pyc
@@ -38,15 +37,25 @@ Thumbs.db
 
 # Environment variables
 .env*
-```
+
+# Runtime and generated artifacts
+results/
+outputs/
+tmp/
+web/output/
+*.mid
+*.midi
+*.wav
+*.mp3
+*.flac
+*.png
+*.pptx
 
 data/fasta/training/*.fasta
 data/fasta/training/*.fa
 
 data/midi/maestro-v3.0.0
 data/midi/polyphonic_music21
-
-results/
 
 QWEN.md
 CHANGES.md

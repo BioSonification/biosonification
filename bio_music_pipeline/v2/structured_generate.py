@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+import hashlib
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
 
 from .bio import BiologicalSequenceEncoder
-from .config import V2PipelineConfig, load_v2_config
+from .config import V2PipelineConfig, load_v2_config, v2_config_from_dict
 from .structured_model import BioConditionedSequenceModel
 from .structured_music import (
     HarmonyTokenizer,
@@ -34,6 +36,68 @@ def _apply_calibration(profile: np.ndarray, calibration: Dict[str, np.ndarray]) 
 
 def _mode_from_profile(profile: np.ndarray) -> str:
     return "major" if float(profile[5]) >= 0.5 else "minor"
+
+
+def _config_hash(config: V2PipelineConfig) -> str:
+    payload = json.dumps(asdict(config), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+
+
+def _load_effective_config(checkpoint: dict, config_path: Optional[str]) -> tuple[V2PipelineConfig, str]:
+    if config_path is not None:
+        return load_v2_config(config_path), str(config_path)
+    checkpoint_config = checkpoint.get("config")
+    if isinstance(checkpoint_config, dict):
+        return v2_config_from_dict(checkpoint_config), "checkpoint"
+    return load_v2_config(None), "defaults"
+
+
+def _validate_checkpoint_compatibility(config: V2PipelineConfig, checkpoint: dict) -> None:
+    tokenizer_info = checkpoint.get("tokenizer_info") or {}
+    harmony_tokenizer = HarmonyTokenizer(config.music)
+    melody_tokenizer = MelodyTokenizer(config.music)
+
+    expected_harmony_vocab = int(tokenizer_info.get("harmony_vocab_size", len(harmony_tokenizer.vocab)))
+    expected_melody_vocab = int(tokenizer_info.get("melody_vocab_size", len(melody_tokenizer.vocab)))
+    if expected_harmony_vocab != len(harmony_tokenizer.vocab):
+        raise ValueError(
+            "Checkpoint/config mismatch: harmony vocab size is "
+            f"{expected_harmony_vocab}, but effective config builds {len(harmony_tokenizer.vocab)} tokens."
+        )
+    if expected_melody_vocab != len(melody_tokenizer.vocab):
+        raise ValueError(
+            "Checkpoint/config mismatch: melody vocab size is "
+            f"{expected_melody_vocab}, but effective config builds {len(melody_tokenizer.vocab)} tokens."
+        )
+
+    checkpoint_config = checkpoint.get("config")
+    if not isinstance(checkpoint_config, dict):
+        return
+
+    saved_config = v2_config_from_dict(checkpoint_config)
+    checks = [
+        ("bio.embedding_dim", saved_config.bio.embedding_dim, config.bio.embedding_dim),
+        ("music.descriptor_bins", saved_config.music.descriptor_bins, config.music.descriptor_bins),
+        ("music.steps_per_bar", saved_config.music.steps_per_bar, config.music.steps_per_bar),
+        ("music.steps_per_beat", saved_config.music.steps_per_beat, config.music.steps_per_beat),
+        ("training.d_model", saved_config.training.d_model, config.training.d_model),
+        ("training.n_heads", saved_config.training.n_heads, config.training.n_heads),
+        ("training.n_layers", saved_config.training.n_layers, config.training.n_layers),
+        ("training.dim_feedforward", saved_config.training.dim_feedforward, config.training.dim_feedforward),
+        ("training.harmony_max_seq_len", saved_config.training.harmony_max_seq_len, config.training.harmony_max_seq_len),
+        ("training.melody_max_seq_len", saved_config.training.melody_max_seq_len, config.training.melody_max_seq_len),
+    ]
+    mismatches = [f"{name}: checkpoint={saved!r}, effective={current!r}" for name, saved, current in checks if saved != current]
+    if mismatches:
+        raise ValueError("Checkpoint/config mismatch:\n" + "\n".join(mismatches))
+
+
+def _resolve_device(device_name: str) -> torch.device:
+    if device_name == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested, but torch.cuda.is_available() is false.")
+    return torch.device(device_name)
 
 
 def _instantiate_models(config: V2PipelineConfig, checkpoint: dict) -> tuple[BioConditionedSequenceModel, BioConditionedSequenceModel]:
@@ -79,9 +143,11 @@ def generate_structured_music_from_fasta(
     config_path: Optional[str] = None,
     record_index: int = 0,
     metadata_output: Optional[str] = None,
-) -> Dict[str, str]:
-    config = load_v2_config(config_path)
+    device_name: str = "auto",
+) -> Dict[str, Any]:
     checkpoint = _trusted_torch_load(checkpoint_path, map_location="cpu")
+    config, config_source = _load_effective_config(checkpoint, config_path)
+    _validate_checkpoint_compatibility(config, checkpoint)
     calibration = checkpoint.get("train_calibration")
     if calibration is None:
         raise ValueError("Checkpoint does not contain train calibration statistics.")
@@ -95,7 +161,7 @@ def generate_structured_music_from_fasta(
     harmony_tokenizer = HarmonyTokenizer(config.music)
     melody_tokenizer = MelodyTokenizer(config.music)
     harmony_model, melody_model = _instantiate_models(config, checkpoint)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = _resolve_device(device_name)
     harmony_model = harmony_model.to(device)
     melody_model = melody_model.to(device)
 
@@ -152,6 +218,9 @@ def generate_structured_music_from_fasta(
         "tonic_pc_hint": int(bio_result.tonic_pc_hint),
         "output_midi": str(output),
         "checkpoint_path": checkpoint_path,
+        "config_source": config_source,
+        "effective_config_hash": _config_hash(config),
+        "device": str(device),
         "tempo_bpm": tempo_bpm,
         "calibrated_profile": [float(value) for value in calibrated_profile],
         "generated_harmony_bars": [

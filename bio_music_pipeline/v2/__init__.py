@@ -9,6 +9,7 @@ from .config import (
     TrainingConfig,
     V2PipelineConfig,
     load_v2_config,
+    v2_config_from_dict,
 )
 from .dataset import (
     BioMusicPairDataset,
@@ -44,6 +45,7 @@ __all__ = [
     "TrainingConfig",
     "V2PipelineConfig",
     "load_v2_config",
+    "v2_config_from_dict",
     "BioMusicPairDataset",
     "MusicSegment",
     "PolyphonicMusicTokenizer",

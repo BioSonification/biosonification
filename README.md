@@ -35,6 +35,18 @@ flowchart TD
 - Биологический слой использует готовые биоинформатические решения: `Biopython ProtParam`, `ViennaRNA`, опционально `ESM` через `transformers`.
 - Pairing строится по структурированным музыкальным дескрипторам, а не по одному scalar complexity score.
 
+## Что является актуальным
+
+Актуальный путь разработки и запуска:
+
+- `train_bio_music_v2.py`
+- `generate_from_fasta_v2.py`
+- `configs/pipeline_v2_small.json`
+- `bio_music_pipeline/v2/structured_*`
+- `web/` после переподключения к `structured_pipeline.pt`
+
+Legacy-слои (`run_pipeline.py`, `generate_from_fasta.py`, ранние single-stream `bio_music_pipeline/v2/model.py`, `dataset.py`, `train.py`, `generate.py`) оставлены для истории и сравнения, но не считаются основным рабочим контуром.
+
 ## Текущая реализация
 
 Основные модули:
@@ -142,3 +154,5 @@ for i, part in enumerate(score.parts):
 - Этап `Bio + Harmony + Melody -> Accompaniment` пока сознательно не реализован.
 - `ESM` включён опционально и по умолчанию выключен в small-конфиге, чтобы укладываться в память `RTX 2060 6 GB`.
 - Для по-настоящему богатой музыки лучше заменить fallback `music21` corpus на более крупкий внешний полифонический корпус.
+- Биологические признаки используются как conditioning signals. Проект не доказывает причинную связь между генами и музыкальными структурами.
+- Runtime-артефакты (`results/`, `outputs/`, `tmp/`, `web/output/`) не должны храниться в git; воспроизводимые результаты нужно описывать через конфиги, метрики и manifest-файлы.

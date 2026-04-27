@@ -86,6 +86,8 @@
 
 ## 8. Результаты
 
+Runtime-артефакты из `results/`, `outputs/`, `tmp/` и `web/output/` игнорируются git. Ниже перечислена ожидаемая структура локальных результатов, а не файлы, которые нужно коммитить.
+
 ### После обучения
 
 Основной каталог:
@@ -122,4 +124,4 @@
 | `web/templates/` | HTML-шаблоны |
 | `web/static/` | CSS и JS |
 
-Web-слой пока не переподключён к structured `v2` и остаётся legacy-интерфейсом.
+Web-слой использует structured `v2` checkpoint `structured_pipeline.pt` и пишет runtime-файлы в `web/output/`.

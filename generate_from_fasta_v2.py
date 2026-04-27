@@ -15,8 +15,9 @@ def main() -> None:
     parser.add_argument("--checkpoint", type=str, required=True, help="Path to a trained v2 checkpoint")
     parser.add_argument("--output", type=str, default="results/v2_generation/generated_from_fasta.mid", help="Output MIDI path")
     parser.add_argument("--metadata-output", type=str, default="results/v2_generation/generated_from_fasta.json", help="Where to save generation metadata")
-    parser.add_argument("--config", type=str, default="configs/pipeline_v2_small.json", help="Path to the v2 JSON config")
+    parser.add_argument("--config", type=str, default=None, help="Optional v2 JSON config override. Defaults to the config stored in the checkpoint.")
     parser.add_argument("--record-index", type=int, default=0, help="0-based FASTA record index")
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto", help="Inference device")
     args = parser.parse_args()
 
     metadata = generate_structured_music_from_fasta(
@@ -26,6 +27,7 @@ def main() -> None:
         config_path=args.config,
         record_index=args.record_index,
         metadata_output=args.metadata_output,
+        device_name=args.device,
     )
     print(json.dumps(metadata, indent=2))
 

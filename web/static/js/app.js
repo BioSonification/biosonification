@@ -207,11 +207,11 @@ function showResults(data) {
     // Parameters
     const params = data.musical_params;
     elements.paramTempo.textContent = Math.round(params.tempo);
-    elements.paramKey.textContent = params.key.replace('_', ' ');
-    elements.paramPitchRange.textContent = `${params.pitch_range[0]} - ${params.pitch_range[1]}`;
-    elements.paramScaleType.textContent = capitalize(params.scale_type);
-    elements.paramRhythm.textContent = params.rhythm_complexity.toFixed(2);
-    elements.paramDynamicRange.textContent = `${params.dynamic_range[0]} - ${params.dynamic_range[1]}`;
+    elements.paramKey.textContent = params.key;
+    elements.paramPitchRange.textContent = params.sequence_type;
+    elements.paramScaleType.textContent = params.harmony_bars;
+    elements.paramRhythm.textContent = params.melody_notes;
+    elements.paramDynamicRange.textContent = params.device;
     
     // Sequence info
     elements.seqHeader.textContent = data.header || 'User Sequence';

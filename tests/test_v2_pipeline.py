@@ -1,10 +1,12 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 
 from bio_music_pipeline.v2.bio import BiologicalSequenceEncoder
 from bio_music_pipeline.v2.config import BioEncoderConfig, MusicDataConfig
+from bio_music_pipeline.v2.structured_generate import _validate_checkpoint_compatibility
 from bio_music_pipeline.v2.structured_model import BioConditionedSequenceModel
 from bio_music_pipeline.v2.structured_music import (
     HarmonyBar,
@@ -130,3 +132,102 @@ def test_melody_decode_is_bounded_and_monophonic():
         current_onset, current_duration, _, _ = events[index]
         next_onset, _, _, _ = events[index + 1]
         assert next_onset >= current_onset + current_duration
+
+
+def test_checkpoint_config_mismatch_is_reported_before_model_load():
+    config = MusicDataConfig(descriptor_bins=8)
+    harmony_tokenizer = HarmonyTokenizer(config)
+    melody_tokenizer = MelodyTokenizer(config)
+    incompatible_config = MusicDataConfig(descriptor_bins=7)
+    from bio_music_pipeline.v2.config import V2PipelineConfig
+
+    checkpoint = {
+        "tokenizer_info": {
+            "harmony_vocab_size": len(harmony_tokenizer.vocab),
+            "melody_vocab_size": len(melody_tokenizer.vocab),
+        },
+        "config": {
+            "music": {"descriptor_bins": config.descriptor_bins},
+        },
+    }
+    with pytest.raises(ValueError, match="Checkpoint/config mismatch"):
+        _validate_checkpoint_compatibility(
+            V2PipelineConfig(music=incompatible_config),
+            checkpoint,
+        )
+
+
+def test_web_status_reports_structured_generator(monkeypatch):
+    import web.app as web_app
+
+    class FakeGenerator:
+        def is_ready(self):
+            return True
+
+        def get_error(self):
+            return None
+
+        def status_payload(self):
+            return {
+                "config_path": "configs/pipeline_v2_small.json",
+                "checkpoint_path": "results/example/checkpoints/structured_pipeline.pt",
+                "device": "cpu",
+            }
+
+    monkeypatch.setattr(web_app, "get_generator", lambda: FakeGenerator())
+    monkeypatch.setattr(web_app, "check_audio_synthesizer", lambda: {"fluidsynth": False, "timidity": False})
+
+    response = web_app.app.test_client().get("/api/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ready"] is True
+    assert payload["generator"]["checkpoint_path"].endswith("structured_pipeline.pt")
+
+
+def test_web_generate_endpoint_returns_structured_metadata(monkeypatch):
+    import web.app as web_app
+
+    class FakeGenerator:
+        def is_ready(self):
+            return True
+
+        def initialize(self):
+            return True
+
+        def get_error(self):
+            return None
+
+        def generate(self, fasta_text, output_dir):
+            return {
+                "session_id": "abc12345",
+                "midi_path": str(Path(output_dir) / "midi" / "abc12345.mid"),
+                "midi_filename": "abc12345.mid",
+                "header": "demo",
+                "sequence_length": 120,
+                "musical_params": {
+                    "tempo": 120.0,
+                    "key": "C major",
+                    "sequence_type": "dna",
+                    "harmony_bars": 8,
+                    "melody_notes": 16,
+                    "device": "cpu",
+                },
+                "structured_metadata": {
+                    "sequence_type": "dna",
+                    "generated_melody_note_count": 16,
+                },
+            }
+
+    monkeypatch.setattr(web_app, "get_generator", lambda: FakeGenerator())
+    monkeypatch.setattr(web_app, "midi_to_wav", lambda midi_path, wav_path: False)
+
+    response = web_app.app.test_client().post(
+        "/api/generate",
+        json={"fasta": ">demo\n" + "ACGT" * 30},
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["success"] is True
+    assert payload["structured_metadata"]["generated_melody_note_count"] == 16
+    assert payload["musical_params"]["harmony_bars"] == 8
+    assert "midi_path" not in payload
