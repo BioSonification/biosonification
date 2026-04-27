@@ -20,7 +20,12 @@ class BioEncoderConfig:
     use_vienna_rna: bool = True
     use_protein_features: bool = True
     translate_longest_orf: bool = True
-    embedding_dim: int = 192
+    use_esm_embedding: bool = False
+    esm_model_name: str = "facebook/esm2_t6_8M_UR50D"
+    esm_feature_dim: int = 64
+    esm_max_length: int = 512
+    esm_device: str = "auto"
+    embedding_dim: int = 256
 
 
 @dataclass
@@ -29,9 +34,10 @@ class MusicDataConfig:
     use_music21_corpus_fallback: bool = True
     music21_composers: List[str] = field(default_factory=lambda: ["bach"])
     max_music21_files: int = 96
-    bars_per_segment: int = 4
-    segment_hop_bars: int = 2
+    bars_per_segment: int = 8
+    segment_hop_bars: int = 4
     steps_per_beat: int = 4
+    steps_per_bar: int = 16
     min_notes_per_segment: int = 12
     min_polyphony_ratio: float = 0.1
     pitch_range_min: int = 24
@@ -40,6 +46,11 @@ class MusicDataConfig:
     duration_bins: int = 32
     descriptor_bins: int = 8
     max_events: int = 768
+    prefer_named_melody_parts: bool = True
+    melody_octave_min: int = 3
+    melody_octave_max: int = 7
+    chord_octave: int = 3
+    chord_hold_token_enabled: bool = True
 
 
 @dataclass
@@ -59,9 +70,13 @@ class TrainingConfig:
     seed: int = 42
     device: str = "auto"
     num_epochs: int = 20
+    harmony_num_epochs: int = 16
+    melody_num_epochs: int = 20
     batch_size: int = 4
     grad_accum_steps: int = 4
     learning_rate: float = 3e-4
+    harmony_learning_rate: float = 3e-4
+    melody_learning_rate: float = 3e-4
     weight_decay: float = 0.01
     max_grad_norm: float = 1.0
     val_fraction: float = 0.15
@@ -75,15 +90,22 @@ class TrainingConfig:
     dim_feedforward: int = 1024
     dropout: float = 0.15
     max_seq_len: int = 896
+    harmony_max_seq_len: int = 128
+    melody_max_seq_len: int = 640
 
 
 @dataclass
 class GenerationConfig:
-    max_new_tokens: int = 512
-    temperature: float = 0.95
-    top_k: int = 24
-    top_p: float = 0.92
-    min_new_tokens: int = 96
+    num_bars: int = 8
+    harmony_max_new_tokens: int = 64
+    melody_max_new_tokens: int = 256
+    harmony_temperature: float = 0.9
+    melody_temperature: float = 0.92
+    harmony_top_k: int = 12
+    melody_top_k: int = 24
+    harmony_top_p: float = 0.9
+    melody_top_p: float = 0.92
+    melody_min_new_tokens: int = 48
 
 
 @dataclass

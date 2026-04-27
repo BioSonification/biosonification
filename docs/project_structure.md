@@ -1,97 +1,92 @@
 # Подробный Каталог Файлов И Каталогов
 
-Этот документ описывает **актуальную файловую карту проекта после внедрения `v2` пайплайна**.
+Этот документ отражает текущее состояние репозитория после перехода на structured `v2` пайплайн.
 
 ## 1. Корень репозитория
 
-| Путь | Тип | Назначение |
-|---|---|---|
-| `.gitignore` | служебный | Правила игнорирования Git |
-| `README.md` | документация | Главная обзорная документация проекта |
-| `RUN_FROM_SCRATCH.md` | документация | Актуальный пошаговый запуск `v2` с нуля |
-| `DATASETS_GUIDE.md` | документация | Руководство по пользовательским FASTA/MIDI данным |
-| `SCIENTIFIC_ARTICLE_AND_TALK_BASE.md` | документация | Текстовая база для статьи и выступления |
-| `requirements.txt` | зависимости | Python-зависимости, включая `torch`, `Biopython`, `music21`, `ViennaRNA` |
-| `train_bio_music_v2.py` | исполняемый код | Основной CLI запуска обучения нового пайплайна |
-| `generate_from_fasta_v2.py` | исполняемый код | Основной CLI запуска генерации нового пайплайна |
-| `run_pipeline.py` | legacy-код | Старый оркестратор прежнего пайплайна |
-| `generate_from_fasta.py` | legacy-код | Старый одиночный inference-скрипт |
-| `scan_datasets.py` | сервисный код | Сканирование каталогов данных |
+| Путь | Назначение |
+|---|---|
+| `README.md` | Краткая обзорная документация и быстрый старт |
+| `RUN_FROM_SCRATCH.md` | Полный запуск structured-пайплайна с нуля |
+| `requirements.txt` | Актуальные зависимости, включая `torch`, `Biopython`, `music21`, `ViennaRNA`, `transformers` |
+| `train_bio_music_v2.py` | Основной CLI обучения |
+| `generate_from_fasta_v2.py` | Основной CLI генерации |
+| `run_pipeline.py` | Legacy orchestration старого проекта |
+| `generate_from_fasta.py` | Legacy inference-скрипт |
 
-## 2. Пакет `bio_music_pipeline/`
-
-### 2.1 Актуальный стек `bio_music_pipeline/v2/`
+## 2. Актуальный пакет `bio_music_pipeline/v2/`
 
 | Путь | Назначение |
 |---|---|
-| `bio_music_pipeline/v2/__init__.py` | Единая точка экспорта `v2` |
-| `bio_music_pipeline/v2/config.py` | Dataclass-конфиги и загрузка JSON-конфига |
-| `bio_music_pipeline/v2/bio.py` | Биологический encoder с sequence/ORF/protein/RNA features |
-| `bio_music_pipeline/v2/dataset.py` | Полифонический tokenizer, сегментация, dataset и fallback corpus |
-| `bio_music_pipeline/v2/pairing.py` | Pairing по многомерным дескрипторам и calibration |
-| `bio_music_pipeline/v2/model.py` | `ControlConditionedTransformer` |
-| `bio_music_pipeline/v2/train.py` | Основной train orchestration |
-| `bio_music_pipeline/v2/generate.py` | Независимый inference orchestration |
+| `bio_music_pipeline/v2/__init__.py` | Единая точка экспорта structured `v2` |
+| `bio_music_pipeline/v2/config.py` | Dataclass-конфиги и загрузка JSON |
+| `bio_music_pipeline/v2/bio.py` | Biological sequence encoder |
+| `bio_music_pipeline/v2/structured_music.py` | Извлечение и токенизация `harmony + melody`, MIDI renderer |
+| `bio_music_pipeline/v2/structured_pairing.py` | Structured pairing и calibration |
+| `bio_music_pipeline/v2/structured_model.py` | `BioConditionedSequenceModel` |
+| `bio_music_pipeline/v2/structured_train.py` | Обучение двухступенчатого пайплайна |
+| `bio_music_pipeline/v2/structured_generate.py` | Inference `FASTA -> harmony -> melody -> MIDI` |
 
-### 2.2 Legacy-стек `bio_music_pipeline/*`
+## 3. Переходные и legacy модули внутри `v2`
 
-Ниже перечисленные директории всё ещё присутствуют и важны для истории проекта, но больше не являются основным рекомендованным способом запуска:
+Эти файлы всё ещё есть, но не являются основным рекомендованным путём:
+
+| Путь | Роль |
+|---|---|
+| `bio_music_pipeline/v2/dataset.py` | Более ранний single-stream symbolic слой |
+| `bio_music_pipeline/v2/pairing.py` | Более ранний pairing для single-stream `v2` |
+| `bio_music_pipeline/v2/model.py` | Более ранняя single-stream модель |
+| `bio_music_pipeline/v2/train.py` | Старый train orchestration `v2` |
+| `bio_music_pipeline/v2/generate.py` | Старый inference orchestration `v2` |
+
+## 4. Legacy-стек `bio_music_pipeline/*`
 
 | Путь | Назначение |
 |---|---|
-| `bio_music_pipeline/extractors/` | Legacy extraction layer |
-| `bio_music_pipeline/sonification/` | Legacy deterministic sonification |
-| `bio_music_pipeline/data/` | Legacy MIDI dataset и old paired creator |
-| `bio_music_pipeline/models/` | Legacy conditioned transformer |
-| `bio_music_pipeline/baselines/` | Baseline-генераторы старого контура |
-| `bio_music_pipeline/evaluation/` | Legacy evaluation framework |
-| `bio_music_pipeline/utils/` | Общие утилиты старого стека |
+| `bio_music_pipeline/extractors/` | Старый extraction layer |
+| `bio_music_pipeline/sonification/` | Старый deterministic sonification |
+| `bio_music_pipeline/data/` | Старые dataset и paired creator |
+| `bio_music_pipeline/models/` | Старый conditioned transformer |
+| `bio_music_pipeline/baselines/` | Старые baseline-генераторы |
+| `bio_music_pipeline/evaluation/` | Старый evaluation framework |
+| `bio_music_pipeline/utils/` | Общие legacy-утилиты |
 
-## 3. Конфиги `configs/`
-
-| Путь | Назначение |
-|---|---|
-| `configs/pipeline_v2_small.json` | Основной рабочий конфиг `v2` для локального устройства с `RTX 2060 6 GB` |
-| `configs/pipeline_config.json` | Legacy базовый конфиг |
-| `configs/pipeline_full_paired.json` | Legacy полный paired-режим |
-| `configs/pipeline_quick_paired.json` | Legacy быстрый paired-режим |
-| `configs/pipeline_quick_paired_v2.json` | Legacy сверхбыстрый paired-режим |
-| `configs/data_paths_config.json` | Дополнительная конфигурация путей |
-| `configs/sample_data_paths.json` | Шаблон конфигурации пользовательских директорий |
-
-## 4. Данные `data/`
-
-### 4.1 `data/fasta/`
+## 5. Конфиги
 
 | Путь | Назначение |
 |---|---|
-| `data/fasta/README.txt` | Инструкция по FASTA |
-| `data/fasta/quick_sample.fa` | Демонстрационный FASTA для smoke- и quick-run |
+| `configs/pipeline_v2_small.json` | Основной рабочий конфиг под `RTX 2060 6 GB` |
+| `configs/pipeline_config.json` | Legacy конфиг |
+| `configs/pipeline_full_paired.json` | Legacy paired-конфиг |
+| `configs/pipeline_quick_paired.json` | Legacy quick paired |
+| `configs/pipeline_quick_paired_v2.json` | Legacy quick paired v2 |
 
-`v2` режет FASTA на фрагменты автоматически, поэтому даже небольшой demo FASTA может быть использован для тестового запуска.
+## 6. Данные
 
-### 4.2 `data/midi/`
-
-| Путь | Назначение |
-|---|---|
-| `data/midi/README.txt` | Инструкция по MIDI |
-| `data/midi/monophonic_extracted/` | Legacy монофонический набор |
-| `data/midi/polyphonic_music21/` | Локально экспортируемый fallback-корпус полифонических MIDI через `music21` |
-
-Каталог `data/midi/polyphonic_music21/`:
-
-- создаётся автоматически при первом запуске `v2`, если внешний полифонический корпус не задан;
-- используется как fallback для быстрого локального обучения и smoke-проверок.
-
-## 5. Тесты
+### `data/fasta/`
 
 | Путь | Назначение |
 |---|---|
-| `tests/test_v2_pipeline.py` | Smoke tests нового пайплайна |
+| `data/fasta/quick_sample.fa` | Demo FASTA для smoke- и quick-run |
+| `data/fasta/README.txt` | Краткая инструкция по FASTA |
 
-## 6. Результаты `results/`
+### `data/midi/`
 
-### 6.1 Актуальный `v2` запуск
+| Путь | Назначение |
+|---|---|
+| `data/midi/polyphonic_music21/` | Fallback полифонический корпус, экспортируемый через `music21` |
+| `data/midi/monophonic_extracted/` | Старый монофонический набор |
+| `data/midi/README.txt` | Краткая инструкция по MIDI |
+
+## 7. Тесты
+
+| Путь | Назначение |
+|---|---|
+| `tests/test_v2_pipeline.py` | Smoke tests structured `v2` пайплайна |
+
+## 8. Результаты
+
+### После обучения
 
 Основной каталог:
 
@@ -102,37 +97,29 @@
 | Путь | Назначение |
 |---|---|
 | `results/v2_music21_rtx2060/resolved_config.json` | Зафиксированный конфиг запуска |
-| `results/v2_music21_rtx2060/metrics.json` | История train/val и test metrics |
-| `results/v2_music21_rtx2060/checkpoints/best_model.pt` | Лучший checkpoint |
-| `results/v2_music21_rtx2060/pairing/pair_manifest.json` | Манифест пар bio↔music |
+| `results/v2_music21_rtx2060/metrics.json` | История `harmony` и `melody` обучения |
+| `results/v2_music21_rtx2060/checkpoints/harmony_best.pt` | Лучший checkpoint гармонической модели |
+| `results/v2_music21_rtx2060/checkpoints/melody_best.pt` | Лучший checkpoint мелодической модели |
+| `results/v2_music21_rtx2060/checkpoints/structured_pipeline.pt` | Совмещённый checkpoint для inference |
+| `results/v2_music21_rtx2060/pairing/pair_manifest.json` | Structured pairing manifest |
 | `results/v2_music21_rtx2060/pairing/pair_calibration.npz` | Калибровка bio profile к music distribution |
-| `results/v2_music21_rtx2060/smoke/sample_from_training_pipeline.mid` | Smoke-generation после обучения |
+| `results/v2_music21_rtx2060/smoke/structured_sample.mid` | Smoke-generation после обучения |
 
-### 6.2 Отдельный inference output
+### После генерации
 
 | Путь | Назначение |
 |---|---|
-| `results/v2_generation/generated_from_fasta.mid` | Результат генерации из FASTA |
-| `results/v2_generation/generated_from_fasta.json` | Метаданные генерации |
+| `results/v2_generation/structured_from_fasta.mid` | Итоговый MIDI из FASTA |
+| `results/v2_generation/structured_from_fasta.json` | Метаданные генерации |
 
-### 6.3 Legacy-результаты
-
-Любые каталоги вида:
-
-- `results/full_paired_run/`
-- `results/paired_data/`
-- `results/research_artifacts/`
-
-относятся к прежнему экспериментальному контуру и не являются основным результатом `v2`.
-
-## 7. Web-часть
+## 9. Web-часть
 
 | Путь | Назначение |
 |---|---|
 | `web/app.py` | Legacy Flask entrypoint |
 | `web/generator.py` | Legacy web generator |
-| `web/midi_to_audio.py` | Конвертация MIDI в WAV для web-сценариев |
+| `web/midi_to_audio.py` | Конвертация MIDI в WAV для legacy web-сценария |
 | `web/templates/` | HTML-шаблоны |
-| `web/static/` | CSS/JS |
+| `web/static/` | CSS и JS |
 
-Web-слой пока не переподключён на `v2` и поэтому должен восприниматься как legacy-интерфейс поверх старого inference-контура.
+Web-слой пока не переподключён к structured `v2` и остаётся legacy-интерфейсом.

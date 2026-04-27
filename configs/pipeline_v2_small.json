@@ -12,16 +12,22 @@
     "use_vienna_rna": true,
     "use_protein_features": true,
     "translate_longest_orf": true,
-    "embedding_dim": 192
+    "use_esm_embedding": false,
+    "esm_model_name": "facebook/esm2_t6_8M_UR50D",
+    "esm_feature_dim": 64,
+    "esm_max_length": 512,
+    "esm_device": "auto",
+    "embedding_dim": 256
   },
   "music": {
     "midi_dirs": ["data/midi/polyphonic_music21"],
     "use_music21_corpus_fallback": true,
     "music21_composers": ["bach"],
     "max_music21_files": 96,
-    "bars_per_segment": 4,
-    "segment_hop_bars": 2,
+    "bars_per_segment": 8,
+    "segment_hop_bars": 4,
     "steps_per_beat": 4,
+    "steps_per_bar": 16,
     "min_notes_per_segment": 12,
     "min_polyphony_ratio": 0.1,
     "pitch_range_min": 24,
@@ -29,7 +35,12 @@
     "velocity_bins": 8,
     "duration_bins": 32,
     "descriptor_bins": 8,
-    "max_events": 768
+    "max_events": 768,
+    "prefer_named_melody_parts": true,
+    "melody_octave_min": 3,
+    "melody_octave_max": 7,
+    "chord_octave": 3,
+    "chord_hold_token_enabled": true
   },
   "pairing": {
     "top_k": 3,
@@ -45,9 +56,13 @@
     "seed": 42,
     "device": "auto",
     "num_epochs": 10,
+    "harmony_num_epochs": 10,
+    "melody_num_epochs": 12,
     "batch_size": 4,
     "grad_accum_steps": 4,
     "learning_rate": 0.0003,
+    "harmony_learning_rate": 0.0003,
+    "melody_learning_rate": 0.0003,
     "weight_decay": 0.01,
     "max_grad_norm": 1.0,
     "val_fraction": 0.15,
@@ -60,13 +75,20 @@
     "n_layers": 4,
     "dim_feedforward": 1024,
     "dropout": 0.15,
-    "max_seq_len": 896
+    "max_seq_len": 896,
+    "harmony_max_seq_len": 128,
+    "melody_max_seq_len": 640
   },
   "generation": {
-    "max_new_tokens": 512,
-    "temperature": 0.92,
-    "top_k": 24,
-    "top_p": 0.92,
-    "min_new_tokens": 96
+    "num_bars": 8,
+    "harmony_max_new_tokens": 64,
+    "melody_max_new_tokens": 256,
+    "harmony_temperature": 0.9,
+    "melody_temperature": 0.92,
+    "harmony_top_k": 12,
+    "melody_top_k": 24,
+    "harmony_top_p": 0.9,
+    "melody_top_p": 0.92,
+    "melody_min_new_tokens": 48
   }
 }

@@ -41,6 +41,7 @@ class BioEncodingResult:
     cleaned_sequence: str
     vector: np.ndarray
     control_profile: np.ndarray
+    tonic_pc_hint: int
     feature_names: List[str]
     feature_map: Dict[str, float]
     translated_protein: str
@@ -76,6 +77,10 @@ class BiologicalSequenceEncoder:
                 "Biopython is required for the v2 sequence encoder. "
                 "Install it before running the pipeline."
             )
+        self._esm_tokenizer = None
+        self._esm_model = None
+        self._esm_device = None
+        self._esm_cache: Dict[str, np.ndarray] = {}
 
     def _parse_fasta(self, fasta_path: str) -> List[tuple[str, str]]:
         records: List[tuple[str, str]] = []
@@ -244,6 +249,75 @@ class BiologicalSequenceEncoder:
             feature_block[f"aa_{acid}"] = float(aa_percent.get(acid, 0.0))
         return feature_block
 
+    def _resolve_esm_device(self) -> str:
+        if self.config.esm_device != "auto":
+            return self.config.esm_device
+        try:
+            import torch
+
+            return "cuda" if torch.cuda.is_available() else "cpu"
+        except Exception:
+            return "cpu"
+
+    def _load_esm(self):
+        if self._esm_model is not None and self._esm_tokenizer is not None:
+            return
+        try:
+            import torch
+            from transformers import AutoTokenizer, EsmModel
+        except ImportError as exc:  # pragma: no cover - optional dependency
+            raise ImportError(
+                "transformers is required when bio.use_esm_embedding=true. "
+                "Install transformers before enabling ESM embeddings."
+            ) from exc
+
+        self._esm_device = self._resolve_esm_device()
+        self._esm_tokenizer = AutoTokenizer.from_pretrained(self.config.esm_model_name)
+        self._esm_model = EsmModel.from_pretrained(self.config.esm_model_name)
+        self._esm_model.eval()
+        self._esm_model.to(self._esm_device)
+
+    def _reduce_embedding(self, embedding: np.ndarray, target_dim: int) -> np.ndarray:
+        if embedding.size == 0 or target_dim <= 0:
+            return np.zeros(target_dim, dtype=np.float32)
+        if embedding.size == target_dim:
+            return embedding.astype(np.float32)
+        if embedding.size < target_dim:
+            padded = np.zeros(target_dim, dtype=np.float32)
+            padded[: embedding.size] = embedding.astype(np.float32)
+            return padded
+        chunks = np.array_split(embedding.astype(np.float32), target_dim)
+        return np.array([float(np.mean(chunk)) for chunk in chunks], dtype=np.float32)
+
+    def _esm_embedding_block(self, protein_sequence: str) -> Dict[str, float]:
+        if not self.config.use_esm_embedding or not protein_sequence:
+            return {f"esm_{index:03d}": 0.0 for index in range(self.config.esm_feature_dim)}
+        if protein_sequence in self._esm_cache:
+            vector = self._esm_cache[protein_sequence]
+            return {f"esm_{index:03d}": float(value) for index, value in enumerate(vector)}
+
+        self._load_esm()
+        import torch
+
+        clipped = protein_sequence[: self.config.esm_max_length]
+        inputs = self._esm_tokenizer(
+            clipped,
+            return_tensors="pt",
+            truncation=True,
+            max_length=self.config.esm_max_length,
+        )
+        inputs = {key: value.to(self._esm_device) for key, value in inputs.items()}
+        with torch.no_grad():
+            outputs = self._esm_model(**inputs)
+            hidden = outputs.last_hidden_state[0]
+            if hidden.size(0) > 2:
+                pooled = hidden[1:-1].mean(dim=0).detach().cpu().numpy()
+            else:
+                pooled = hidden.mean(dim=0).detach().cpu().numpy()
+        reduced = self._reduce_embedding(pooled, self.config.esm_feature_dim)
+        self._esm_cache[protein_sequence] = reduced
+        return {f"esm_{index:03d}": float(value) for index, value in enumerate(reduced)}
+
     def _rna_structure_block(self, rna_sequence: str) -> tuple[Dict[str, float], str]:
         if not rna_sequence or RNA is None or not self.config.use_vienna_rna:
             return {
@@ -322,6 +396,18 @@ class BiologicalSequenceEncoder:
             copy_len = min(vector.size, combined.size)
             vector[:copy_len] = combined[:copy_len]
         return vector, feature_names
+
+    def _tonic_pc_hint(self, feature_map: Dict[str, float]) -> int:
+        tonic_score = (
+            0.22 * feature_map.get("freq_A", 0.25) * 0
+            + 0.22 * feature_map.get("freq_C", 0.25) * 7
+            + 0.22 * feature_map.get("freq_G", 0.25) * 2
+            + 0.22 * (feature_map.get("freq_T", 0.0) + feature_map.get("freq_U", 0.0) + 1e-6) * 9
+            + 0.04 * feature_map.get("protein_aromaticity", 0.0) * 11
+            + 0.04 * _normalized(feature_map.get("protein_charge_density", 0.0), -0.3, 0.3) * 5
+            + 0.04 * feature_map.get("rna_paired_fraction", 0.0) * 4
+        )
+        return int(round(tonic_score)) % 12
 
     def _music_control_profile(self, feature_map: Dict[str, float]) -> np.ndarray:
         tempo_likelihood = float(
@@ -413,6 +499,7 @@ class BiologicalSequenceEncoder:
                 translated_protein = self._longest_orf(cleaned)
                 feature_map.update(self._protein_feature_block(translated_protein))
                 feature_map["protein_orf_coverage"] = len(translated_protein) * 3 / max(len(cleaned), 1)
+                feature_map.update(self._esm_embedding_block(translated_protein))
         else:
             feature_map["seq_length_norm"] = _normalized(
                 len(cleaned), self.config.min_sequence_length, self.config.max_sequence_length
@@ -425,6 +512,7 @@ class BiologicalSequenceEncoder:
             feature_map["codon_entropy"] = 0.0
             translated_protein = cleaned
             feature_map.update(self._protein_feature_block(cleaned))
+            feature_map.update(self._esm_embedding_block(cleaned))
             for acid in AMINO_ACIDS:
                 feature_map.setdefault(f"freq_{acid}", feature_map.get(f"aa_{acid}", 0.0))
 
@@ -435,6 +523,7 @@ class BiologicalSequenceEncoder:
             cleaned_sequence=cleaned,
             vector=vector,
             control_profile=self._music_control_profile(feature_map),
+            tonic_pc_hint=self._tonic_pc_hint(feature_map),
             feature_names=feature_names,
             feature_map=feature_map,
             translated_protein=translated_protein,

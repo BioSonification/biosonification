@@ -1,27 +1,19 @@
-# Полный запуск с нуля: актуальный `v2` пайплайн
+# Полный запуск с нуля: structured `v2` пайплайн
 
-Этот документ описывает **текущий рабочий способ** запуска проекта после последних изменений. Основной контур теперь находится в `bio_music_pipeline/v2` и рассчитан на:
-
-- полифоническую музыку без сведения к монофонии;
-- biologically informed encoding из FASTA;
-- обучение компактной conditional Transformer-модели на `RTX 2060 6 GB`;
-- отдельный проверяемый путь `train -> checkpoint -> generate`.
-
-Старый стек `run_pipeline.py` и связанные модули сохранены в репозитории как legacy-контур, но **не являются рекомендуемым способом запуска**.
+Этот документ описывает актуальный путь запуска проекта после перехода на иерархическую схему `Bio -> Harmony -> Melody`.
 
 ## 1. Что нужно на входе
 
 - FASTA-файл или каталог FASTA-файлов
-- MIDI-корпус
+- полифонический MIDI-корпус
 
-Если своего полифонического MIDI-корпуса пока нет, `v2` умеет автоматически поднять fallback-корпус через `music21` и экспортировать локальные полифонические MIDI в `data/midi/polyphonic_music21/`.
+Если своего корпуса пока нет, пайплайн умеет автоматически поднять fallback-корпус `music21` в `data/midi/polyphonic_music21/`.
 
 ## 2. Требования
 
-- Windows 11 или другой современный desktop environment
 - Python `3.12`
-- NVIDIA GPU, желательно CUDA-совместимая
-- для текущего локального сценария проверено на `RTX 2060 6 GB`
+- NVIDIA GPU с CUDA
+- локально проверено на `RTX 2060 6 GB`
 
 ## 3. Подготовка окружения
 
@@ -50,30 +42,9 @@ if torch.cuda.is_available():
 Ожидаемое поведение:
 
 - `cuda: True`
-- корректное имя GPU
+- устройство `NVIDIA GeForce RTX 2060`
 
-## 5. Подготовка данных
-
-Минимальная структура:
-
-```text
-data/
-  fasta/
-    quick_sample.fa
-  midi/
-    polyphonic_music21/      # может создаться автоматически
-```
-
-Если у вас есть свой полифонический корпус, укажите путь к нему в `configs/pipeline_v2_small.json`:
-
-- поле `music.midi_dirs`
-
-Если у вас свой FASTA-корпус:
-
-- замените `fasta_path`
-- при необходимости настройте `bio.fragment_length`, `bio.fragment_stride`, `bio.max_fragments_per_record`
-
-## 6. Проверка кода до запуска обучения
+## 5. Проверка кода до обучения
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests\test_v2_pipeline.py
@@ -81,47 +52,58 @@ data/
 
 Ожидаемое поведение:
 
-- `3 passed`
+- `4 passed`
+
+## 6. Базовый конфиг
+
+Основной конфиг:
+
+- `configs/pipeline_v2_small.json`
+
+Он уже настроен под текущую машину:
+
+- `output_dir = results/v2_music21_rtx2060`
+- `mixed_precision = true`
+- compact Transformer под `RTX 2060 6 GB`
+- `use_esm_embedding = false` по умолчанию
+
+Если хотите обучаться на своём корпусе, обычно меняются:
+
+- `fasta_path`
+- `music.midi_dirs`
+- `music.max_music21_files`
+- `training.batch_size`
+- `training.harmony_num_epochs`
+- `training.melody_num_epochs`
 
 ## 7. Запуск обучения
-
-Базовый запуск:
 
 ```powershell
 .\.venv\Scripts\python.exe train_bio_music_v2.py --config configs\pipeline_v2_small.json
 ```
 
-Что делает этот запуск:
+Что делает команда:
 
-1. читает FASTA и режет последовательности на фрагменты;
-2. строит `bio embedding` и `control profile`;
-3. поднимает полифонический музыкальный корпус;
-4. сегментирует MIDI на полифонические окна;
-5. делает pairing по многомерным музыкальным дескрипторам;
-6. обучает conditional Transformer;
-7. сохраняет checkpoint, метрики и smoke MIDI.
+1. кодирует FASTA через `BiologicalSequenceEncoder`
+2. извлекает `bio vector` и `control profile`
+3. строит structured музыкальный корпус `harmony + melody`
+4. делает pairing bio-фрагментов и музыкальных сегментов
+5. обучает отдельную `harmony model`
+6. обучает отдельную `melody model`
+7. сохраняет checkpoints, метрики и smoke MIDI
 
 ## 8. Что должно появиться после обучения
-
-Основные артефакты:
 
 - `results/v2_music21_rtx2060/resolved_config.json`
 - `results/v2_music21_rtx2060/pairing/pair_manifest.json`
 - `results/v2_music21_rtx2060/pairing/pair_calibration.npz`
-- `results/v2_music21_rtx2060/checkpoints/best_model.pt`
+- `results/v2_music21_rtx2060/checkpoints/harmony_best.pt`
+- `results/v2_music21_rtx2060/checkpoints/melody_best.pt`
+- `results/v2_music21_rtx2060/checkpoints/structured_pipeline.pt`
 - `results/v2_music21_rtx2060/metrics.json`
-- `results/v2_music21_rtx2060/smoke/sample_from_training_pipeline.mid`
+- `results/v2_music21_rtx2060/smoke/structured_sample.mid`
 
 ## 9. Как проверять корректность обучения
-
-### Во время запуска
-
-Проверьте, что процесс не падает и создаются промежуточные каталоги:
-
-- `results/v2_music21_rtx2060/pairing/`
-- `results/v2_music21_rtx2060/checkpoints/`
-
-### После запуска
 
 Откройте:
 
@@ -129,95 +111,94 @@ data/
 Get-Content results\v2_music21_rtx2060\metrics.json
 ```
 
-Что считать нормальным:
+Нормальные признаки:
 
 - `device` = `cuda`
-- `history[*].val.loss` в среднем уменьшается по эпохам
-- checkpoint существует
-- smoke MIDI существует
+- `harmony_history[*].val_loss` в среднем уменьшается
+- `melody_history[*].val_loss` в среднем уменьшается
+- `harmony_test_loss` и `melody_test_loss` конечные и не `NaN`
+
+Дополнительная проверка smoke MIDI:
+
+```powershell
+@'
+from music21 import converter, chord, note
+score = converter.parse("results/v2_music21_rtx2060/smoke/structured_sample.mid")
+print("highestTime:", float(score.highestTime))
+for i, part in enumerate(score.parts):
+    flat = list(part.flatten().notes)
+    print("part", i, "events", len(flat), "notes", sum(isinstance(x, note.Note) for x in flat), "chords", sum(isinstance(x, chord.Chord) for x in flat))
+'@ | .\.venv\Scripts\python.exe -
+```
+
+Для текущего structured-пайплайна ожидается:
+
+- ровно 2 партии
+- гармония состоит из аккордов
+- мелодия состоит из одиночных нот
+- общая длина не выходит за границы гармонической сетки
 
 ## 10. Запуск генерации из FASTA
 
-После обучения:
-
 ```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py --config configs\pipeline_v2_small.json --checkpoint results\v2_music21_rtx2060\checkpoints\best_model.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\generated_from_fasta.mid --metadata-output results\v2_generation\generated_from_fasta.json
+.\.venv\Scripts\python.exe generate_from_fasta_v2.py --config configs\pipeline_v2_small.json --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\structured_from_fasta.mid --metadata-output results\v2_generation\structured_from_fasta.json
 ```
 
 ## 11. Как проверять корректность генератора
 
 Проверьте, что появились:
 
-- `results/v2_generation/generated_from_fasta.mid`
-- `results/v2_generation/generated_from_fasta.json`
+- `results/v2_generation/structured_from_fasta.mid`
+- `results/v2_generation/structured_from_fasta.json`
 
 Быстрая техническая проверка:
 
 ```powershell
 @'
-from music21 import converter
-score = converter.parse("results/v2_generation/generated_from_fasta.mid")
-notes = list(score.flatten().notes)
-print("notes:", len(notes))
-print("duration:", float(score.highestTime))
+from music21 import converter, chord, note
+score = converter.parse("results/v2_generation/structured_from_fasta.mid")
+print("highestTime:", float(score.highestTime))
+for i, part in enumerate(score.parts):
+    flat = list(part.flatten().notes)
+    print("part", i, "events", len(flat), "notes", sum(isinstance(x, note.Note) for x in flat), "chords", sum(isinstance(x, chord.Chord) for x in flat))
 '@ | .\.venv\Scripts\python.exe -
 ```
 
-Нормальный результат:
+Ожидаемое поведение:
 
-- `notes > 0`
-- ненулевая длительность
+- `highestTime` совпадает с длиной `num_bars`
+- первая партия аккордовая
+- вторая партия мелодическая и остаётся монофонической
 
-Если нужна ещё одна sanity-проверка на полифонию:
+Содержимое `structured_from_fasta.json` полезно для контроля:
 
-```powershell
-@'
-from music21 import converter
-from collections import Counter
-score = converter.parse("results/v2_generation/generated_from_fasta.mid")
-notes = list(score.flatten().notes)
-onsets = Counter(round(float(n.offset), 3) for n in notes)
-print("polyphonic_onsets:", sum(v > 1 for v in onsets.values()))
-print("max_simultaneous:", max(onsets.values()) if onsets else 0)
-'@ | .\.venv\Scripts\python.exe -
-```
+- `sequence_id`
+- `sequence_type`
+- `tempo_bpm`
+- `tonic_pc_hint`
+- `generated_harmony_bars`
+- `generated_melody_note_count`
 
-## 12. Где менять параметры под свой датасет
+## 12. Что означает `use_esm_embedding`
 
-Основной файл:
+В `bio`-конфиге есть:
 
-- `configs/pipeline_v2_small.json`
+- `use_esm_embedding`
+- `esm_model_name`
+- `esm_feature_dim`
+- `esm_max_length`
 
-Чаще всего меняются:
+Это опциональный слой белковых embedding’ов через `transformers`. В small-конфиге он выключен по умолчанию, потому что на `RTX 2060 6 GB` основное обучение стабильнее держать на заранее вычисляемых более лёгких признаках. Включать его лучше после того, как базовый structured-контур уже работает на ваших данных.
 
-- `output_dir`
-- `fasta_path`
-- `music.midi_dirs`
-- `music.max_music21_files`
-- `training.num_epochs`
-- `training.batch_size`
-- `training.grad_accum_steps`
-- `generation.temperature`
-- `generation.top_k`
-- `generation.top_p`
+## 13. Что пока не реализовано
 
-## 13. Что уже проверено локально
+Текущий основной результат:
 
-На текущем устройстве и в текущем состоянии репозитория проверено:
+- `Bio -> Harmony`
+- `Bio + Harmony -> Melody`
 
-- окружение установлено;
-- `torch` видит `RTX 2060`;
-- `pytest` проходит;
-- обучение `v2` завершается успешно;
-- сохраняется `best_model.pt`;
-- отдельный inference-скрипт генерирует MIDI из FASTA;
-- smoke и final generation содержат полифонические onset’ы.
+Следующий, пока не реализованный этап:
 
-## 14. Legacy-контур
+- `Bio + Harmony + Melody -> Accompaniment`
 
-Старые команды вида:
-
-- `python run_pipeline.py ...`
-- `python -m bio_music_pipeline.data.paired_dataset_creator ...`
-
-относятся к прежнему стеку. Они оставлены для исторической совместимости и анализа старой архитектуры, но не описывают текущий рекомендованный production-like сценарий запуска.
+Именно поэтому текущий MIDI состоит из двух дорожек: аккордовая гармония и монофоническая мелодия.
