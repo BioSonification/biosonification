@@ -18,7 +18,7 @@
 
 | Путь | Назначение |
 |---|---|
-| `bio_music_pipeline/v2/__init__.py` | Единая точка экспорта structured `v2` |
+| `bio_music_pipeline/v2/__init__.py` | Единая точка экспорта актуальных stable API structured `v2` |
 | `bio_music_pipeline/v2/config.py` | Dataclass-конфиги и загрузка JSON |
 | `bio_music_pipeline/v2/bio.py` | Biological sequence encoder |
 | `bio_music_pipeline/v2/structured_music.py` | Извлечение и токенизация `harmony + melody`, MIDI renderer |
@@ -29,7 +29,7 @@
 
 ## 3. Переходные и legacy модули внутри `v2`
 
-Эти файлы всё ещё есть, но не являются основным рекомендованным путём:
+Эти файлы всё ещё есть и импортируются напрямую при необходимости воспроизвести старые эксперименты, но не экспортируются из `bio_music_pipeline.v2` как stable API:
 
 | Путь | Роль |
 |---|---|
@@ -118,10 +118,14 @@ Runtime-артефакты из `results/`, `outputs/`, `tmp/` и `web/output/` 
 
 | Путь | Назначение |
 |---|---|
-| `web/app.py` | Legacy Flask entrypoint |
-| `web/generator.py` | Legacy web generator |
-| `web/midi_to_audio.py` | Конвертация MIDI в WAV для legacy web-сценария |
+| `web/app.py` | Flask entrypoint для structured `v2` |
+| `web/generator.py` | Web wrapper вокруг `generate_structured_music_from_fasta()` |
+| `web/midi_to_audio.py` | Опциональная конвертация MIDI в WAV |
 | `web/templates/` | HTML-шаблоны |
 | `web/static/` | CSS и JS |
 
 Web-слой использует structured `v2` checkpoint `structured_pipeline.pt` и пишет runtime-файлы в `web/output/`.
+
+## 10. Legacy policy
+
+Подробно см. `docs/legacy.md`. Коротко: `run_pipeline.py`, `generate_from_fasta.py`, старые single-stream модули внутри `bio_music_pipeline/v2/` и старый top-level stack оставлены для воспроизводимости и сравнения, но новые функции должны строиться вокруг structured `v2`.

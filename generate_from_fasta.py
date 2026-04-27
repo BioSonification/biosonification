@@ -2,6 +2,9 @@
 """
 Generate one MIDI file from one FASTA fragment.
 
+LEGACY: this script uses the original single-stream pipeline. The current
+recommended generator is `generate_from_fasta_v2.py`.
+
 This utility is intended as a quick end-to-end sanity check:
 FASTA fragment -> bio-vector -> conditioned generation -> MIDI.
 """
@@ -67,6 +70,11 @@ def _load_fragment(fasta_path: Path,
 
 
 def main():
+    print(
+        "WARNING: generate_from_fasta.py is legacy. "
+        "Use generate_from_fasta_v2.py for the current structured v2 pipeline.",
+        file=sys.stderr,
+    )
     parser = argparse.ArgumentParser(description="Generate MIDI from one FASTA fragment")
     parser.add_argument('--fasta', type=str,
                         default='data/fasta/training/Homo_sapiens.GRCh38.cds.all.fa',

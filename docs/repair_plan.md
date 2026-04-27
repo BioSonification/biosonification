@@ -132,7 +132,7 @@
   - `/api/status`
   - `/api/generate` happy path with monkeypatched generator
   - invalid input response
-- [ ] Добавить test command в README.
+- [x] Добавить test command в README.
 
 ### Definition Of Done
 
@@ -148,7 +148,7 @@
   - held-out FASTA
   - held-out MIDI/music segments
   - deterministic sample list
-- [ ] Добавить baselines:
+- [x] Добавить baselines:
   - random/unconditioned harmony+melody
   - shuffled bio profiles
   - deterministic sonification legacy baseline
@@ -159,7 +159,7 @@
   - no calibration
   - different pairing `top_k` and temperature
 - [ ] Добавить multi-seed runner для structured v2.
-- [ ] Считать метрики:
+- [x] Считать базовые метрики:
   - train/val/test loss по seed
   - note density
   - pitch range
@@ -168,7 +168,7 @@
   - repetition/self-similarity
   - invalid/empty generation rate
   - MIDI duration/part count invariants
-- [ ] Сохранять evaluation report в JSON + Markdown.
+- [x] Сохранять evaluation report в JSON + Markdown.
 - [ ] Добавить human survey flow или обновить существующие `/api/survey/*` под structured outputs.
 
 ### Definition Of Done
@@ -182,16 +182,16 @@
 
 ### Задачи
 
-- [ ] Решить, fallback `music21` остаётся demo-only или допустим для основного эксперимента.
-- [ ] Если нужен серьёзный корпус, добавить documented ingestion path для внешнего polyphonic MIDI dataset.
-- [ ] Проверить `MusicDataConfig.music21_composers`: либо реализовать выбор composers, либо удалить/переименовать поле.
-- [ ] Добавить dataset manifest:
+- [x] Решить, fallback `music21` остаётся demo-only или допустим для основного эксперимента.
+- [x] Если нужен серьёзный корпус, добавить documented ingestion path для внешнего polyphonic MIDI dataset.
+- [x] Проверить `MusicDataConfig.music21_composers`: fallback теперь явно поддерживает только `bach` и сообщает об ошибке для неподдержанных значений.
+- [x] Добавить dataset manifest:
   - source
   - license/status
   - file count
   - extracted segment count
   - filtering criteria
-- [ ] Добавить sanity report по корпусу: распределения темпа, тональностей, плотности, polyphony, длительности.
+- [x] Добавить sanity report по корпусу: распределения темпа, тональностей, плотности, polyphony, длительности.
 
 ### Definition Of Done
 
@@ -203,13 +203,13 @@
 
 ### Задачи
 
-- [ ] Принять решение по `run_pipeline.py`, `generate_from_fasta.py`, legacy modules:
+- [x] Принять решение по `run_pipeline.py`, `generate_from_fasta.py`, legacy modules:
   - удалить
   - оставить в `legacy/`
   - оставить на месте, но пометить deprecated
-- [ ] Если legacy остаётся, добавить `docs/legacy.md`.
-- [ ] Убрать legacy imports из current path.
-- [ ] Проверить, что `bio_music_pipeline/v2/__init__.py` экспортирует только актуальные stable APIs.
+- [x] Если legacy остаётся, добавить `docs/legacy.md`.
+- [x] Убрать legacy imports из current path.
+- [x] Проверить, что `bio_music_pipeline/v2/__init__.py` экспортирует только актуальные stable APIs.
 
 ### Definition Of Done
 
@@ -236,6 +236,14 @@
 
 ```powershell
 .\.venv\Scripts\python.exe generate_from_fasta_v2.py --config configs\pipeline_v2_small.json --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\structured_from_fasta.mid --metadata-output results\v2_generation\structured_from_fasta.json
+```
+
+```powershell
+.\.venv\Scripts\python.exe tools\evaluate_structured_v2.py --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output-dir results\v2_evaluation --max-records 4 --device auto
+```
+
+```powershell
+.\.venv\Scripts\python.exe tools\report_structured_dataset.py --config configs\pipeline_v2_small.json --output-dir results\v2_dataset_report
 ```
 
 ```powershell

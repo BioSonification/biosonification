@@ -132,12 +132,44 @@ for i, part in enumerate(score.parts):
 - в гармонии лежат аккорды по тактам
 - мелодия остаётся монофонической
 
+## Оценка результата
+
+Минимальный evaluation-run для structured `v2`:
+
+```powershell
+.\.venv\Scripts\python.exe tools\evaluate_structured_v2.py --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output-dir results\v2_evaluation --max-records 4 --device auto
+```
+
+Команда генерирует MIDI для нескольких FASTA fragments, строит random harmony+melody baseline и сохраняет:
+
+- `results/v2_evaluation/evaluation_report.json`
+- `results/v2_evaluation/evaluation_report.md`
+- `results/v2_evaluation/midi/*.mid`
+
+Метрики проверяют структуру MIDI, плотность мелодии, pitch range, chord change rate, chord-tone ratio, self-similarity и invalid generation rate.
+
+## Отчёт по данным
+
+Перед обучением или оценкой можно зафиксировать manifest используемых FASTA/MIDI данных:
+
+```powershell
+.\.venv\Scripts\python.exe tools\report_structured_dataset.py --config configs\pipeline_v2_small.json --output-dir results\v2_dataset_report
+```
+
+Отчёт сохраняет:
+
+- `results/v2_dataset_report/dataset_report.json`
+- `results/v2_dataset_report/dataset_report.md`
+
+Fallback-корпус `music21` помечается как demo/smoke-test источник. Для серьёзных экспериментов лучше указывать внешний лицензированный полифонический MIDI-корпус в `music.midi_dirs`.
+
 ## Документация
 
 - [RUN_FROM_SCRATCH.md](RUN_FROM_SCRATCH.md): полный запуск с нуля
 - [docs/architecture_and_science.md](docs/architecture_and_science.md): постановка задачи и методология
 - [docs/code_walkthrough.md](docs/code_walkthrough.md): разбор модулей
 - [docs/project_structure.md](docs/project_structure.md): файловая карта
+- [docs/legacy.md](docs/legacy.md): что осталось от старого single-stream пайплайна и как с этим обращаться
 
 ## Локально подтверждено
 

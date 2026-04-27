@@ -224,11 +224,23 @@ class BioMusicPairDataset(Dataset):
         }
 
 
-def bootstrap_music21_corpus(output_dir: str, max_files: int = 96) -> List[Path]:
+def bootstrap_music21_corpus(
+    output_dir: str,
+    max_files: int = 96,
+    composers: Optional[Sequence[str]] = None,
+) -> List[Path]:
     """Export a compact polyphonic Bach corpus to local MIDI files."""
 
     if corpus is None:
         raise ImportError("music21 is required to bootstrap the fallback corpus.")
+
+    composer_names = [name.lower() for name in (composers or ["bach"])]
+    unsupported = [name for name in composer_names if name != "bach"]
+    if unsupported:
+        raise ValueError(
+            "The built-in music21 fallback currently supports only Bach chorales. "
+            f"Unsupported composer values: {unsupported}. Provide MIDI files via music.midi_dirs for other corpora."
+        )
 
     target_dir = Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -442,7 +454,11 @@ def load_music_corpus(
     files = _iter_score_files(midi_dirs)
     if not files and music_config.use_music21_corpus_fallback:
         fallback_dir = Path(midi_dirs[0]) if midi_dirs else Path("data/midi/polyphonic_music21")
-        bootstrap_music21_corpus(str(fallback_dir), max_files=music_config.max_music21_files)
+        bootstrap_music21_corpus(
+            str(fallback_dir),
+            max_files=music_config.max_music21_files,
+            composers=music_config.music21_composers,
+        )
         files = _iter_score_files([str(fallback_dir)])
 
     segments: List[MusicSegment] = []

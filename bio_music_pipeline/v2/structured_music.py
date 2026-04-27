@@ -656,7 +656,11 @@ def load_structured_music_corpus(
     score_files = _iter_score_files(midi_dirs)
     if not score_files and music_config.use_music21_corpus_fallback:
         fallback_dir = Path(midi_dirs[0]) if midi_dirs else Path("data/midi/polyphonic_music21")
-        bootstrap_music21_corpus(str(fallback_dir), max_files=music_config.max_music21_files)
+        bootstrap_music21_corpus(
+            str(fallback_dir),
+            max_files=music_config.max_music21_files,
+            composers=music_config.music21_composers,
+        )
         score_files = _iter_score_files([str(fallback_dir)])
 
     segments: List[StructuredMusicSegment] = []

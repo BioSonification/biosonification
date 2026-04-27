@@ -2,6 +2,9 @@
 """
 Bio-Music Pipeline - Main Orchestration Script
 
+LEGACY: this script belongs to the original single-stream pipeline. The current
+recommended path is `train_bio_music_v2.py` and `generate_from_fasta_v2.py`.
+
 Reproducible controlled symbolic music generation conditioned on biological sequence features.
 
 This script executes all 5 stages of the pipeline:
@@ -1096,6 +1099,11 @@ class BioMusicPipeline:
 
 def main():
     """Main entry point."""
+    print(
+        "WARNING: run_pipeline.py is legacy. "
+        "Use train_bio_music_v2.py for the current structured v2 pipeline.",
+        file=sys.stderr,
+    )
     parser = argparse.ArgumentParser(
         description='Bio-Music Conditioned Generation Pipeline'
     )

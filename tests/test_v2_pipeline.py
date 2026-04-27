@@ -6,6 +6,8 @@ import torch
 
 from bio_music_pipeline.v2.bio import BiologicalSequenceEncoder
 from bio_music_pipeline.v2.config import BioEncoderConfig, MusicDataConfig
+from bio_music_pipeline.v2.evaluate import compute_structured_midi_metrics
+from bio_music_pipeline.v2.dataset import bootstrap_music21_corpus
 from bio_music_pipeline.v2.structured_generate import _validate_checkpoint_compatibility
 from bio_music_pipeline.v2.structured_model import BioConditionedSequenceModel
 from bio_music_pipeline.v2.structured_music import (
@@ -231,3 +233,57 @@ def test_web_generate_endpoint_returns_structured_metadata(monkeypatch):
     assert payload["structured_metadata"]["generated_melody_note_count"] == 16
     assert payload["musical_params"]["harmony_bars"] == 8
     assert "midi_path" not in payload
+
+
+def test_structured_midi_metrics_detect_two_part_score(tmp_path):
+    config = MusicDataConfig(bars_per_segment=2)
+    harmony_bars = [
+        HarmonyBar(bar_index=0, root_pc=0, quality="maj", hold=False, key_tonic_pc=0, key_mode="major"),
+        HarmonyBar(bar_index=1, root_pc=7, quality="dom7", hold=False, key_tonic_pc=0, key_mode="major"),
+    ]
+    melody_events = [
+        (0, 2, 60, 0),
+        (4, 2, 64, 0),
+        (16, 4, 67, 1),
+    ]
+    metadata = {
+        "tonic_pc_hint": 0,
+        "generated_harmony_bars": [
+            {"root_pc": 0, "quality": "maj", "hold": False},
+            {"root_pc": 7, "quality": "dom7", "hold": False},
+        ],
+    }
+    midi_path = tmp_path / "sample.mid"
+    score = render_harmony_and_melody_to_score(harmony_bars, melody_events, 96.0, config)
+    score.write("midi", fp=str(midi_path))
+
+    metrics = compute_structured_midi_metrics(str(midi_path), metadata)
+    assert metrics["valid"] is True
+    assert metrics["expected_two_part_score"] is True
+    assert metrics["harmony_chord_count"] == 2
+    assert metrics["melody_note_count"] == 3
+    assert metrics["chord_tone_ratio"] > 0.0
+
+
+def test_music21_fallback_rejects_unsupported_composer(tmp_path):
+    with pytest.raises(ValueError, match="supports only Bach"):
+        bootstrap_music21_corpus(str(tmp_path), max_files=1, composers=["mozart"])
+
+
+def test_v2_public_api_exports_only_structured_stable_surface():
+    import bio_music_pipeline.v2 as v2
+
+    legacy_names = {
+        "BioMusicPairDataset",
+        "MusicSegment",
+        "PolyphonicMusicTokenizer",
+        "load_music_corpus",
+        "generate_music_from_fasta",
+        "ControlConditionedTransformer",
+        "PairedSample",
+        "build_paired_dataset",
+        "train_pipeline",
+    }
+    assert not legacy_names.intersection(set(v2.__all__))
+    assert "train_structured_pipeline" in v2.__all__
+    assert "generate_structured_music_from_fasta" in v2.__all__

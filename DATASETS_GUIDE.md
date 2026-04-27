@@ -2,6 +2,8 @@
 
 Этот документ описывает, как использовать ваши собственные датасеты MIDI и FASTA файлов в проекте.
 
+> Актуальный structured `v2` контур использует `configs/pipeline_v2_small.json`, `train_bio_music_v2.py` и `generate_from_fasta_v2.py`. Некоторые примеры ниже относятся к legacy `run_pipeline.py`; для новых экспериментов ориентируйтесь на разделы про `music.midi_dirs`, `fasta_path` и команду dataset report.
+
 ## Структура директорий
 
 Проект автоматически создаёт стандартные директории для данных:
@@ -42,6 +44,8 @@
 
 3. Все файлы будут автоматически обнаружены и обработаны конвейером.
 
+Для structured `v2` укажите один или несколько каталогов в `music.midi_dirs` внутри `configs/pipeline_v2_small.json` или вашего производного конфига. Встроенный fallback `music21` подходит для demo/smoke-тестов; для серьёзных выводов нужен внешний лицензированный полифонический MIDI-корпус.
+
 ### 2. FASTA файлы
 
 1. Скачайте FASTA файлы с любого источника:
@@ -62,6 +66,23 @@
    ```
 
 3. Поддерживаемые форматы: `.fasta`, `.fa`, `.fna`, `.ffn`, `.faa`, `.frn`
+
+Для structured `v2` основной FASTA-файл задаётся полем `fasta_path`.
+
+## Manifest и sanity report для structured v2
+
+Перед обучением или публикацией результатов зафиксируйте фактические данные:
+
+```powershell
+.\.venv\Scripts\python.exe tools\report_structured_dataset.py --config configs\pipeline_v2_small.json --output-dir results\v2_dataset_report
+```
+
+Команда создаёт:
+
+- `dataset_report.json`
+- `dataset_report.md`
+
+В отчёте фиксируются FASTA records/fragments, MIDI file count, source kind, structured segment count, tempo/key/density summaries и фильтры сегментации.
 
 ## Использование в коде
 

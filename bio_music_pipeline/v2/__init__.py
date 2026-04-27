@@ -11,15 +11,12 @@ from .config import (
     load_v2_config,
     v2_config_from_dict,
 )
-from .dataset import (
-    BioMusicPairDataset,
-    MusicSegment,
-    PolyphonicMusicTokenizer,
-    load_music_corpus,
+from .evaluate import (
+    StructuredEvaluationConfig,
+    compute_structured_midi_metrics,
+    run_structured_evaluation,
 )
-from .generate import generate_music_from_fasta
-from .model import ControlConditionedTransformer
-from .pairing import PairedSample, build_paired_dataset
+from .dataset_report import DatasetReportConfig, build_dataset_report
 from .structured_generate import generate_structured_music_from_fasta
 from .structured_model import BioConditionedSequenceModel
 from .structured_music import (
@@ -33,7 +30,6 @@ from .structured_music import (
 )
 from .structured_pairing import StructuredPairedSample, build_structured_paired_dataset
 from .structured_train import train_structured_pipeline
-from .train import train_pipeline
 
 __all__ = [
     "BioEncodingResult",
@@ -46,14 +42,11 @@ __all__ = [
     "V2PipelineConfig",
     "load_v2_config",
     "v2_config_from_dict",
-    "BioMusicPairDataset",
-    "MusicSegment",
-    "PolyphonicMusicTokenizer",
-    "load_music_corpus",
-    "generate_music_from_fasta",
-    "ControlConditionedTransformer",
-    "PairedSample",
-    "build_paired_dataset",
+    "StructuredEvaluationConfig",
+    "compute_structured_midi_metrics",
+    "run_structured_evaluation",
+    "DatasetReportConfig",
+    "build_dataset_report",
     "HarmonyBar",
     "HarmonyTokenizer",
     "MelodyEvent",
@@ -64,7 +57,6 @@ __all__ = [
     "StructuredPairedSample",
     "build_structured_paired_dataset",
     "BioConditionedSequenceModel",
-    "train_pipeline",
     "train_structured_pipeline",
     "generate_structured_music_from_fasta",
 ]
