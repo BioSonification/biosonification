@@ -11,7 +11,7 @@ import numpy as np
 
 from .bio import BiologicalSequenceEncoder
 from .config import V2PipelineConfig, load_v2_config
-from .dataset import _iter_score_files
+from .corpus import iter_score_files
 from .structured_music import load_structured_music_corpus
 
 try:
@@ -101,7 +101,7 @@ def _bio_fragment_summary(config: V2PipelineConfig) -> Dict[str, Any]:
 
 
 def _music_file_manifest(config: V2PipelineConfig) -> Dict[str, Any]:
-    score_files = _iter_score_files(config.music.midi_dirs)
+    score_files = iter_score_files(config.music.midi_dirs)
     suffix_counts: Dict[str, int] = {}
     for path in score_files:
         suffix = path.suffix.lower()
@@ -221,7 +221,7 @@ def build_dataset_report(report_config: DatasetReportConfig) -> Dict[str, Any]:
 
     report = {
         "config_path": report_config.config_path,
-        "pipeline_config": asdict(config),
+        "resolved_config": asdict(config),
         "fasta": _fasta_records(config.fasta_path, report_config.max_preview_records),
         "bio_fragments": _bio_fragment_summary(config),
         "music_files": _music_file_manifest(config),

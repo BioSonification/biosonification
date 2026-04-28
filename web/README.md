@@ -5,8 +5,6 @@ Flask interface for the current structured `v2` biosonification pipeline. It gen
 - harmony track: bar-level chord grid
 - melody track: monophonic melody conditioned on the generated harmony
 
-The legacy `run_pipeline.py` / `best_model.pt` web path is no longer the recommended route.
-
 ## Requirements
 
 Install the project dependencies from the repository root:

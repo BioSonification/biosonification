@@ -53,8 +53,13 @@ web/output/
 
 data/fasta/training/*.fasta
 data/fasta/training/*.fa
+data/fasta/training/*.fna
+data/fasta/training/*.fna.gz
 
 data/midi/maestro-v3.0.0
+data/midi/maestro-v3.0.0-midi.zip
+data/midi/POP909
+data/midi/POP909.zip
 data/midi/polyphonic_music21
 
 QWEN.md

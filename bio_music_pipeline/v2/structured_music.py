@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
 from .config import MusicDataConfig
-from .dataset import bootstrap_music21_corpus, _ensure_music21, _iter_score_files  # type: ignore
+from .corpus import bootstrap_music21_corpus, iter_score_files
 
 try:
     from music21 import chord, converter, corpus, key, meter, note, stream, tempo
@@ -22,6 +23,11 @@ except ImportError:  # pragma: no cover - checked by runtime bootstrap
     note = None
     stream = None
     tempo = None
+
+try:
+    import mido
+except ImportError:  # pragma: no cover
+    mido = None
 
 
 CHORD_QUALITIES = (
@@ -51,6 +57,32 @@ QUALITY_INTERVALS: Dict[str, Tuple[int, ...]] = {
     "power": (0, 7),
     "other": (0, 4, 7),
 }
+
+PITCH_CLASS_BY_NAME = {
+    "C": 0,
+    "B#": 0,
+    "C#": 1,
+    "Db": 1,
+    "D": 2,
+    "D#": 3,
+    "Eb": 3,
+    "E": 4,
+    "Fb": 4,
+    "E#": 5,
+    "F": 5,
+    "F#": 6,
+    "Gb": 6,
+    "G": 7,
+    "G#": 8,
+    "Ab": 8,
+    "A": 9,
+    "A#": 10,
+    "Bb": 10,
+    "B": 11,
+    "Cb": 11,
+}
+
+PITCH_CLASS_NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
 
 
 @dataclass
@@ -366,6 +398,11 @@ def _tempo_bpm(score: "stream.Score") -> float:
     return 96.0
 
 
+def _ensure_music21() -> None:
+    if converter is None or note is None or chord is None or stream is None:
+        raise ImportError("music21 is required for the v2 structured music pipeline.")
+
+
 def _pick_melody_part(score: "stream.Score", config: MusicDataConfig) -> Optional["stream.Part"]:
     parts = list(score.parts)
     if not parts:
@@ -642,6 +679,331 @@ def _structured_segments_from_score(
     return segments
 
 
+def _parse_pop909_chord_label(label: str, fallback_root: int, fallback_quality: str) -> Tuple[int, str]:
+    if label == "N" or not label:
+        return fallback_root, fallback_quality
+    chord_name = label.split("/", 1)[0]
+    if ":" not in chord_name:
+        return fallback_root, fallback_quality
+    root_name, quality_name = chord_name.split(":", 1)
+    root_pc = PITCH_CLASS_BY_NAME.get(root_name, fallback_root)
+    quality_name = quality_name.strip()
+    if quality_name in {"maj", "min", "dim", "aug", "maj7", "min7", "sus2", "sus4"}:
+        quality = quality_name
+    elif quality_name in {"7", "sus4(b7)"}:
+        quality = "dom7"
+    elif quality_name in {"maj6"}:
+        quality = "maj"
+    elif quality_name in {"min6"}:
+        quality = "min"
+    elif quality_name in {"dim7", "hdim7"}:
+        quality = "dim"
+    else:
+        quality = "other"
+    return root_pc, quality
+
+
+def _read_pop909_beats(song_dir: Path) -> Optional[Tuple[np.ndarray, List[int]]]:
+    beat_path = song_dir / "beat_midi.txt"
+    if not beat_path.exists():
+        return None
+    beat_times = []
+    downbeats = []
+    for line in beat_path.read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        beat_times.append(float(parts[0]))
+        if float(parts[2]) > 0.5:
+            downbeats.append(len(beat_times) - 1)
+    if len(beat_times) < 4 or len(downbeats) < 2:
+        return None
+    return np.asarray(beat_times, dtype=np.float64), downbeats
+
+
+def _read_pop909_chords(song_dir: Path) -> List[Tuple[float, float, str]]:
+    chord_path = song_dir / "chord_midi.txt"
+    if not chord_path.exists():
+        return []
+    chords = []
+    for line in chord_path.read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if len(parts) >= 3:
+            chords.append((float(parts[0]), float(parts[1]), parts[2]))
+    return chords
+
+
+def _midi_tempo_events(mid: "mido.MidiFile") -> List[Tuple[int, int]]:
+    events = [(0, 500000)]
+    for track in mid.tracks:
+        absolute_tick = 0
+        for message in track:
+            absolute_tick += message.time
+            if message.type == "set_tempo":
+                events.append((absolute_tick, int(message.tempo)))
+    return sorted(events, key=lambda item: item[0])
+
+
+def _tick_to_seconds(tick: int, tempo_events: Sequence[Tuple[int, int]], ticks_per_beat: int) -> float:
+    seconds = 0.0
+    previous_tick = 0
+    tempo_value = tempo_events[0][1]
+    for event_tick, event_tempo in tempo_events[1:]:
+        if tick <= event_tick:
+            break
+        seconds += mido.tick2second(event_tick - previous_tick, ticks_per_beat, tempo_value)
+        previous_tick = event_tick
+        tempo_value = event_tempo
+    seconds += mido.tick2second(tick - previous_tick, ticks_per_beat, tempo_value)
+    return float(seconds)
+
+
+def _pop909_melody_notes(midi_path: Path) -> List[Tuple[float, float, int]]:
+    if mido is None:
+        return []
+    mid = mido.MidiFile(str(midi_path))
+    tempo_events = _midi_tempo_events(mid)
+    melody_track = None
+    fallback_track = None
+    fallback_note_count = -1
+    for track in mid.tracks:
+        track_name = ""
+        note_count = 0
+        for message in track:
+            if message.type == "track_name":
+                track_name = message.name.upper()
+            elif message.type == "note_on" and message.velocity > 0:
+                note_count += 1
+        if "MELODY" in track_name:
+            melody_track = track
+            break
+        if note_count > fallback_note_count:
+            fallback_track = track
+            fallback_note_count = note_count
+    track = melody_track or fallback_track
+    if track is None:
+        return []
+
+    active: Dict[Tuple[int, int], List[int]] = {}
+    notes_out: List[Tuple[float, float, int]] = []
+    absolute_tick = 0
+    for message in track:
+        absolute_tick += message.time
+        if message.type == "note_on" and message.velocity > 0:
+            active.setdefault((message.channel, message.note), []).append(absolute_tick)
+        elif message.type in {"note_off", "note_on"}:
+            key_value = (message.channel, message.note)
+            starts = active.get(key_value)
+            if starts:
+                start_tick = starts.pop(0)
+                if absolute_tick > start_tick:
+                    notes_out.append(
+                        (
+                            _tick_to_seconds(start_tick, tempo_events, mid.ticks_per_beat),
+                            _tick_to_seconds(absolute_tick, tempo_events, mid.ticks_per_beat),
+                            int(message.note),
+                        )
+                    )
+    notes_out.sort(key=lambda item: (item[0], item[2]))
+    return notes_out
+
+
+def _time_to_beat(time_seconds: float, beat_times: np.ndarray) -> float:
+    return float(np.interp(time_seconds, beat_times, np.arange(len(beat_times), dtype=np.float64)))
+
+
+def _active_pop909_label(chords: Sequence[Tuple[float, float, str]], time_seconds: float) -> str:
+    for start, end, label in chords:
+        if start <= time_seconds < end:
+            return label
+    return chords[-1][2] if chords else "N"
+
+
+def _pop909_segments_from_score(
+    score_path: Path,
+    harmony_tokenizer: HarmonyTokenizer,
+    melody_tokenizer: MelodyTokenizer,
+    config: MusicDataConfig,
+) -> Optional[List[StructuredMusicSegment]]:
+    song_dir = score_path.parent
+    if song_dir.name == "versions":
+        return []
+    if not (song_dir / "beat_midi.txt").exists() or not (song_dir / "chord_midi.txt").exists():
+        return None
+    beat_data = _read_pop909_beats(song_dir)
+    if beat_data is None:
+        return []
+    beat_times, downbeats = beat_data
+    chords = _read_pop909_chords(song_dir)
+    melody_notes = _pop909_melody_notes(score_path)
+    if not melody_notes:
+        return []
+
+    beat_diffs = np.diff(beat_times)
+    tempo_bpm = float(60.0 / np.median(beat_diffs)) if beat_diffs.size else 120.0
+    segments: List[StructuredMusicSegment] = []
+    hop = max(1, config.segment_hop_bars)
+    bars_per_segment = max(1, config.bars_per_segment)
+    for bar_start_index in range(0, len(downbeats) - bars_per_segment, hop):
+        start_beat_index = downbeats[bar_start_index]
+        end_beat_index = downbeats[bar_start_index + bars_per_segment]
+        start_time = float(beat_times[start_beat_index])
+        end_time = float(beat_times[end_beat_index])
+        harmony_bars: List[HarmonyBar] = []
+        previous_root = 0
+        previous_quality = "maj"
+        for local_bar in range(bars_per_segment):
+            bar_beat_index = downbeats[bar_start_index + local_bar]
+            next_beat_index = downbeats[bar_start_index + local_bar + 1]
+            midpoint = float((beat_times[bar_beat_index] + beat_times[next_beat_index]) / 2.0)
+            root_pc, quality_name = _parse_pop909_chord_label(
+                _active_pop909_label(chords, midpoint),
+                previous_root,
+                previous_quality,
+            )
+            hold = bool(local_bar > 0 and root_pc == previous_root and quality_name == previous_quality)
+            harmony_bars.append(
+                HarmonyBar(
+                    bar_index=local_bar,
+                    root_pc=root_pc,
+                    quality=quality_name,
+                    hold=hold,
+                    key_tonic_pc=harmony_bars[0].root_pc if harmony_bars else root_pc,
+                    key_mode="major",
+                )
+            )
+            previous_root = root_pc
+            previous_quality = quality_name
+
+        melody_events: List[MelodyEvent] = []
+        seen_positions = set()
+        for note_start, note_end, midi_pitch in melody_notes:
+            if note_start < start_time or note_start >= end_time:
+                continue
+            onset_beats = _time_to_beat(note_start, beat_times) - start_beat_index
+            end_beats = _time_to_beat(note_end, beat_times) - start_beat_index
+            local_bar = int(np.floor(onset_beats / 4.0))
+            if local_bar < 0 or local_bar >= bars_per_segment:
+                continue
+            position_step = int(np.clip(round((onset_beats - local_bar * 4.0) * config.steps_per_beat), 0, config.steps_per_bar - 1))
+            signature = (local_bar, position_step)
+            if signature in seen_positions:
+                continue
+            seen_positions.add(signature)
+            duration_steps = int(np.clip(round((end_beats - onset_beats) * config.steps_per_beat), 1, config.steps_per_bar))
+            octave = int(np.clip(midi_pitch // 12 - 1, config.melody_octave_min, config.melody_octave_max))
+            melody_events.append(
+                MelodyEvent(
+                    bar_index=local_bar,
+                    position_step=position_step,
+                    duration_steps=duration_steps,
+                    relative_pc=(midi_pitch - harmony_bars[local_bar].root_pc) % 12,
+                    octave=octave,
+                )
+            )
+        melody_events.sort(key=lambda item: (item.bar_index, item.position_step, item.octave))
+        if len(melody_events) < config.min_notes_per_segment:
+            continue
+        try:
+            key_signature = key.Key(PITCH_CLASS_NAMES[harmony_bars[0].root_pc])
+        except Exception:
+            key_signature = key.Key("C")
+        descriptor_vector = _segment_descriptor_vector(harmony_bars, melody_events, key_signature, tempo_bpm, config)
+        harmony_token_ids, harmony_prefix_ids = harmony_tokenizer.encode_progression(
+            harmony_bars,
+            descriptor_vector,
+            harmony_bars[0].root_pc,
+            "major",
+        )
+        melody_token_ids, melody_prefix_ids = melody_tokenizer.encode_melody(
+            melody_events,
+            harmony_bars,
+            descriptor_vector,
+            harmony_bars[0].root_pc,
+            "major",
+        )
+        segments.append(
+            StructuredMusicSegment(
+                segment_id=f"{score_path.stem}_b{bar_start_index:03d}",
+                source_path=str(score_path),
+                start_measure=bar_start_index,
+                end_measure=bar_start_index + bars_per_segment,
+                harmony_bars=harmony_bars,
+                melody_events=melody_events,
+                harmony_token_ids=harmony_token_ids,
+                harmony_prefix_ids=harmony_prefix_ids,
+                melody_token_ids=melody_token_ids,
+                melody_prefix_ids=melody_prefix_ids,
+                descriptor_vector=descriptor_vector,
+                tempo_bpm=tempo_bpm,
+                key_tonic_pc=harmony_bars[0].root_pc,
+                key_mode="major",
+            )
+        )
+    return segments
+
+
+def _segment_to_dict(segment: StructuredMusicSegment) -> dict:
+    return {
+        "segment_id": segment.segment_id,
+        "source_path": segment.source_path,
+        "start_measure": segment.start_measure,
+        "end_measure": segment.end_measure,
+        "harmony_bars": [asdict(item) for item in segment.harmony_bars],
+        "melody_events": [asdict(item) for item in segment.melody_events],
+        "harmony_token_ids": list(segment.harmony_token_ids),
+        "harmony_prefix_ids": list(segment.harmony_prefix_ids),
+        "melody_token_ids": list(segment.melody_token_ids),
+        "melody_prefix_ids": list(segment.melody_prefix_ids),
+        "descriptor_vector": [float(value) for value in segment.descriptor_vector],
+        "tempo_bpm": float(segment.tempo_bpm),
+        "key_tonic_pc": int(segment.key_tonic_pc),
+        "key_mode": segment.key_mode,
+    }
+
+
+def _segment_from_dict(payload: dict) -> StructuredMusicSegment:
+    return StructuredMusicSegment(
+        segment_id=payload["segment_id"],
+        source_path=payload["source_path"],
+        start_measure=int(payload["start_measure"]),
+        end_measure=int(payload["end_measure"]),
+        harmony_bars=[HarmonyBar(**item) for item in payload["harmony_bars"]],
+        melody_events=[MelodyEvent(**item) for item in payload["melody_events"]],
+        harmony_token_ids=[int(value) for value in payload["harmony_token_ids"]],
+        harmony_prefix_ids=[int(value) for value in payload["harmony_prefix_ids"]],
+        melody_token_ids=[int(value) for value in payload["melody_token_ids"]],
+        melody_prefix_ids=[int(value) for value in payload["melody_prefix_ids"]],
+        descriptor_vector=np.asarray(payload["descriptor_vector"], dtype=np.float32),
+        tempo_bpm=float(payload["tempo_bpm"]),
+        key_tonic_pc=int(payload["key_tonic_pc"]),
+        key_mode=payload["key_mode"],
+    )
+
+
+def _load_segment_cache(cache_path: Path, config: MusicDataConfig) -> Optional[List[StructuredMusicSegment]]:
+    if not cache_path.exists():
+        return None
+    try:
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if payload.get("music_config") != asdict(config):
+        return None
+    return [_segment_from_dict(item) for item in payload.get("segments", [])]
+
+
+def _write_segment_cache(cache_path: Path, config: MusicDataConfig, segments: Sequence[StructuredMusicSegment]) -> None:
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "cache_version": 1,
+        "music_config": asdict(config),
+        "segment_count": len(segments),
+        "segments": [_segment_to_dict(segment) for segment in segments],
+    }
+    cache_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
 def load_structured_music_corpus(
     config: Optional[MusicDataConfig] = None,
     harmony_tokenizer: Optional[HarmonyTokenizer] = None,
@@ -651,9 +1013,13 @@ def load_structured_music_corpus(
     _ensure_music21()
     harmony_tokenizer = harmony_tokenizer or HarmonyTokenizer(music_config)
     melody_tokenizer = melody_tokenizer or MelodyTokenizer(music_config)
+    if music_config.segment_cache_path:
+        cached_segments = _load_segment_cache(Path(music_config.segment_cache_path), music_config)
+        if cached_segments:
+            return cached_segments, harmony_tokenizer, melody_tokenizer
 
     midi_dirs = list(music_config.midi_dirs)
-    score_files = _iter_score_files(midi_dirs)
+    score_files = iter_score_files(midi_dirs)
     if not score_files and music_config.use_music21_corpus_fallback:
         fallback_dir = Path(midi_dirs[0]) if midi_dirs else Path("data/midi/polyphonic_music21")
         bootstrap_music21_corpus(
@@ -661,13 +1027,23 @@ def load_structured_music_corpus(
             max_files=music_config.max_music21_files,
             composers=music_config.music21_composers,
         )
-        score_files = _iter_score_files([str(fallback_dir)])
+        score_files = iter_score_files([str(fallback_dir)])
+    if music_config.max_score_files > 0:
+        score_files = score_files[: music_config.max_score_files]
 
     segments: List[StructuredMusicSegment] = []
     for score_path in score_files:
-        segments.extend(_structured_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config))
+        fast_segments = _pop909_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
+        if fast_segments is None:
+            fast_segments = _structured_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
+        segments.extend(fast_segments)
+        if music_config.max_segments > 0 and len(segments) >= music_config.max_segments:
+            segments = segments[: music_config.max_segments]
+            break
     if not segments:
         raise ValueError("No valid structured chord+melody segments were found in the configured music corpus.")
+    if music_config.segment_cache_path:
+        _write_segment_cache(Path(music_config.segment_cache_path), music_config, segments)
     return segments, harmony_tokenizer, melody_tokenizer
 
 

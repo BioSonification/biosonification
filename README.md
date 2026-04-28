@@ -1,8 +1,6 @@
 # BioSonification
 
-Проект генерирует символическую музыку по биологическим последовательностям. Текущий основной контур реализован как иерархический пайплайн `Bio -> Harmony -> Melody`: сначала из FASTA извлекаются biologically informed признаки, затем по ним генерируется аккордовая сетка по тактам, а после этого отдельная модель строит монофоническую мелодию поверх этой гармонии.
-
-Старый стек на `run_pipeline.py` и ранний single-stream `v2` в репозитории оставлены, но считаются legacy. Рабочий и рекомендуемый путь запуска сегодня проходит через `bio_music_pipeline/v2/structured_*`, `train_bio_music_v2.py` и `generate_from_fasta_v2.py`.
+Проект генерирует символическую музыку по биологическим последовательностям. Основной контур реализован как иерархический пайплайн `Bio -> Harmony -> Melody`: сначала из FASTA извлекаются biologically informed признаки, затем по ним генерируется аккордовая сетка по тактам, а после этого отдельная модель строит монофоническую мелодию поверх этой гармонии.
 
 ## Что делает текущий пайплайн
 
@@ -27,36 +25,38 @@ flowchart TD
     L --> M["2-track MIDI: harmony + melody"]
 ```
 
-## Ключевые отличия от старой версии
+## Архитектурные свойства
 
-- Музыка больше не генерируется как один хаотичный поток событий.
 - Гармония и мелодия разделены на два нейросетевых этапа.
 - Мелодия жёстко ограничена гармонической сеткой и нормализуется в монофоническую линию без самоналожений.
 - Биологический слой использует готовые биоинформатические решения: `Biopython ProtParam`, `ViennaRNA`, опционально `ESM` через `transformers`.
-- Pairing строится по структурированным музыкальным дескрипторам, а не по одному scalar complexity score.
+- Pairing строится по структурированным музыкальным дескрипторам.
 
-## Что является актуальным
+## Основные файлы
 
-Актуальный путь разработки и запуска:
+Основной путь разработки и запуска:
 
 - `train_bio_music_v2.py`
 - `generate_from_fasta_v2.py`
 - `configs/pipeline_v2_small.json`
 - `bio_music_pipeline/v2/structured_*`
-- `web/` после переподключения к `structured_pipeline.pt`
-
-Legacy-слои (`run_pipeline.py`, `generate_from_fasta.py`, ранние single-stream `bio_music_pipeline/v2/model.py`, `dataset.py`, `train.py`, `generate.py`) оставлены для истории и сравнения, но не считаются основным рабочим контуром.
+- `bio_music_pipeline/v2/evaluate.py`
+- `bio_music_pipeline/v2/dataset_report.py`
+- `web/`
 
 ## Текущая реализация
 
 Основные модули:
 
 - `bio_music_pipeline/v2/bio.py`: sequence encoder, ORF, protein features, RNA folding, optional ESM
+- `bio_music_pipeline/v2/corpus.py`: поиск score-файлов и fallback-корпус `music21`
 - `bio_music_pipeline/v2/structured_music.py`: извлечение аккордов и мелодии из полифонического корпуса, токенизация, рендер MIDI
 - `bio_music_pipeline/v2/structured_pairing.py`: pairing bio fragments и музыкальных сегментов
 - `bio_music_pipeline/v2/structured_model.py`: autoregressive Transformer с conditioning по bio vector
 - `bio_music_pipeline/v2/structured_train.py`: обучение `harmony model` и `melody model`
 - `bio_music_pipeline/v2/structured_generate.py`: inference `FASTA -> MIDI`
+- `bio_music_pipeline/v2/evaluate.py`: evaluation metrics и baseline
+- `bio_music_pipeline/v2/dataset_report.py`: manifest данных
 
 CLI:
 
@@ -169,7 +169,7 @@ Fallback-корпус `music21` помечается как demo/smoke-test ис
 - [docs/architecture_and_science.md](docs/architecture_and_science.md): постановка задачи и методология
 - [docs/code_walkthrough.md](docs/code_walkthrough.md): разбор модулей
 - [docs/project_structure.md](docs/project_structure.md): файловая карта
-- [docs/legacy.md](docs/legacy.md): что осталось от старого single-stream пайплайна и как с этим обращаться
+- [docs/thesis_experiment_summary.md](docs/thesis_experiment_summary.md): финальный эксперимент для диплома
 
 ## Локально подтверждено
 
@@ -185,6 +185,6 @@ Fallback-корпус `music21` помечается как demo/smoke-test ис
 
 - Этап `Bio + Harmony + Melody -> Accompaniment` пока сознательно не реализован.
 - `ESM` включён опционально и по умолчанию выключен в small-конфиге, чтобы укладываться в память `RTX 2060 6 GB`.
-- Для по-настоящему богатой музыки лучше заменить fallback `music21` corpus на более крупкий внешний полифонический корпус.
+- Для по-настоящему богатой музыки лучше заменить fallback `music21` corpus на более крупный внешний полифонический корпус.
 - Биологические признаки используются как conditioning signals. Проект не доказывает причинную связь между генами и музыкальными структурами.
 - Runtime-артефакты (`results/`, `outputs/`, `tmp/`, `web/output/`) не должны храниться в git; воспроизводимые результаты нужно описывать через конфиги, метрики и manifest-файлы.

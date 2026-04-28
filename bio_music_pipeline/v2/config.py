@@ -34,6 +34,9 @@ class MusicDataConfig:
     use_music21_corpus_fallback: bool = True
     music21_composers: List[str] = field(default_factory=lambda: ["bach"])
     max_music21_files: int = 96
+    max_score_files: int = 0
+    max_segments: int = 0
+    segment_cache_path: Optional[str] = None
     bars_per_segment: int = 8
     segment_hop_bars: int = 4
     steps_per_beat: int = 4

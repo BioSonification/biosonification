@@ -7,7 +7,7 @@ import torch
 from bio_music_pipeline.v2.bio import BiologicalSequenceEncoder
 from bio_music_pipeline.v2.config import BioEncoderConfig, MusicDataConfig
 from bio_music_pipeline.v2.evaluate import compute_structured_midi_metrics
-from bio_music_pipeline.v2.dataset import bootstrap_music21_corpus
+from bio_music_pipeline.v2.corpus import bootstrap_music21_corpus
 from bio_music_pipeline.v2.structured_generate import _validate_checkpoint_compatibility
 from bio_music_pipeline.v2.structured_model import BioConditionedSequenceModel
 from bio_music_pipeline.v2.structured_music import (
@@ -273,7 +273,7 @@ def test_music21_fallback_rejects_unsupported_composer(tmp_path):
 def test_v2_public_api_exports_only_structured_stable_surface():
     import bio_music_pipeline.v2 as v2
 
-    legacy_names = {
+    removed_api_names = {
         "BioMusicPairDataset",
         "MusicSegment",
         "PolyphonicMusicTokenizer",
@@ -284,6 +284,6 @@ def test_v2_public_api_exports_only_structured_stable_surface():
         "build_paired_dataset",
         "train_pipeline",
     }
-    assert not legacy_names.intersection(set(v2.__all__))
+    assert not removed_api_names.intersection(set(v2.__all__))
     assert "train_structured_pipeline" in v2.__all__
     assert "generate_structured_music_from_fasta" in v2.__all__

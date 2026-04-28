@@ -1,77 +1,42 @@
-# Работа с пользовательскими датасетами MIDI и FASTA
+# Данные Для Structured V2
 
-Этот документ описывает, как использовать ваши собственные датасеты MIDI и FASTA файлов в проекте.
+Этот документ описывает только актуальный контур проекта: `configs/pipeline_v2_small.json`, `train_bio_music_v2.py`, `generate_from_fasta_v2.py` и пакет `bio_music_pipeline/v2/`.
 
-> Актуальный structured `v2` контур использует `configs/pipeline_v2_small.json`, `train_bio_music_v2.py` и `generate_from_fasta_v2.py`. Некоторые примеры ниже относятся к legacy `run_pipeline.py`; для новых экспериментов ориентируйтесь на разделы про `music.midi_dirs`, `fasta_path` и команду dataset report.
+## FASTA
 
-## Структура директорий
+Основной FASTA-файл задаётся полем `fasta_path` в конфиге:
 
-Проект автоматически создаёт стандартные директории для данных:
-
-```
-/workspace/
-├── data/
-│   ├── midi/          # Для ваших MIDI файлов
-│   │   └── README.txt
-│   └── fasta/         # Для ваших FASTA файлов
-│       └── README.txt
-├── configs/
-│   ├── pipeline_config.json
-│   └── data_paths_config.json
-└── ...
+```json
+{
+  "fasta_path": "data/fasta/quick_sample.fa"
+}
 ```
 
-## Как добавить свои данные
+Поддерживаются расширения `.fasta`, `.fa`, `.fna`, `.ffn`, `.faa`, `.frn`. Энкодер принимает DNA, RNA и protein-like последовательности, очищает записи и режет длинные последовательности на фрагменты по параметрам из `bio`.
 
-### 1. MIDI файлы
+## MIDI
 
-1. Скачайте MIDI файлы с любого источника:
-   - [MuseScore](https://musescore.com/)
-   - [MIDI World](http://www.midiworld.com/)
-   - [BitMidi](https://bitmidi.com/)
-   - Любого другого сайта
+Полифонический MIDI-корпус задаётся списком `music.midi_dirs`:
 
-2. Поместите файлы в директорию `data/midi/` или любую поддиректорию:
-   ```
-   data/midi/
-   ├── classical/
-   │   ├── bach.mid
-   │   └── mozart.mid
-   ├── jazz/
-   │   └── coltrane.mid
-   └── custom.mid
-   ```
+```json
+{
+  "music": {
+    "midi_dirs": ["data/midi/polyphonic_music21"]
+  }
+}
+```
 
-3. Все файлы будут автоматически обнаружены и обработаны конвейером.
+Корпус должен содержать `.mid`, `.midi`, `.xml`, `.mxl` или `.musicxml` файлы. Из них извлекаются структурированные сегменты:
 
-Для structured `v2` укажите один или несколько каталогов в `music.midi_dirs` внутри `configs/pipeline_v2_small.json` или вашего производного конфига. Встроенный fallback `music21` подходит для demo/smoke-тестов; для серьёзных выводов нужен внешний лицензированный полифонический MIDI-корпус.
+- гармония по тактам;
+- монофоническая мелодическая линия;
+- музыкальные дескрипторы для pairing.
 
-### 2. FASTA файлы
+Встроенный `music21` fallback подходит для smoke-тестов и локальной проверки. Для экспериментов, на которые хочется опираться в отчётах, лучше использовать внешний лицензированный полифонический MIDI-корпус и явно указать его в `music.midi_dirs`.
 
-1. Скачайте FASTA файлы с любого источника:
-   - [NCBI GenBank](https://www.ncbi.nlm.nih.gov/genbank/)
-   - [Ensembl](https://www.ensembl.org/)
-   - [UCSC Genome Browser](https://genome.ucsc.edu/)
-   - [UniProt](https://www.uniprot.org/)
+## Sanity Report
 
-2. Поместите файлы в директорию `data/fasta/` или любую поддиректорию:
-   ```
-   data/fasta/
-   ├── human/
-   │   ├── chromosome1.fasta
-   │   └── genes.fa
-   ├── microbial/
-   │   └── bacteria.fna
-   └── custom.fasta
-   ```
-
-3. Поддерживаемые форматы: `.fasta`, `.fa`, `.fna`, `.ffn`, `.faa`, `.frn`
-
-Для structured `v2` основной FASTA-файл задаётся полем `fasta_path`.
-
-## Manifest и sanity report для structured v2
-
-Перед обучением или публикацией результатов зафиксируйте фактические данные:
+Перед обучением удобно зафиксировать, какие данные реально попали в запуск:
 
 ```powershell
 .\.venv\Scripts\python.exe tools\report_structured_dataset.py --config configs\pipeline_v2_small.json --output-dir results\v2_dataset_report
@@ -79,227 +44,32 @@
 
 Команда создаёт:
 
-- `dataset_report.json`
-- `dataset_report.md`
+- `results/v2_dataset_report/dataset_report.json`
+- `results/v2_dataset_report/dataset_report.md`
 
-В отчёте фиксируются FASTA records/fragments, MIDI file count, source kind, structured segment count, tempo/key/density summaries и фильтры сегментации.
+Отчёт показывает количество FASTA records/fragments, количество MIDI-файлов, тип музыкального источника, число извлечённых structured-сегментов, распределения tempo/key/density и фактические параметры сегментации.
 
-## Использование в коде
+## Типичный Поток
 
-### Базовое использование
+1. Положите FASTA в `data/fasta/` или укажите абсолютный путь в своём конфиге.
+2. Положите полифонические MIDI/XML-файлы в отдельный каталог.
+3. Создайте копию `configs/pipeline_v2_small.json` и обновите `fasta_path` и `music.midi_dirs`.
+4. Запустите dataset report.
+5. Запустите обучение:
 
-```python
-from bio_music_pipeline.data import UniversalDataLoader, setup_user_datasets
-from bio_music_pipeline.extractors import FastaDatasetLoader, load_user_fasta_dataset
-
-# Настройка стандартных директорий
-setup_user_datasets('/path/to/project')
-
-# Сканирование доступных данных
-loader = UniversalDataLoader()
-loader.print_data_summary()
+```powershell
+.\.venv\Scripts\python.exe train_bio_music_v2.py --config configs\pipeline_v2_small.json
 ```
 
-### Загрузка MIDI файлов
+6. Сгенерируйте MIDI из FASTA:
 
-```python
-from bio_music_pipeline.data import MusicDataset
-
-# Создание датасета из вашей директории с MIDI
-dataset = MusicDataset(
-    data_dir='data/midi',  # или любой другой путь
-    train_split=0.7,
-    val_split=0.15,
-    test_split=0.15,
-    seed=42
-)
-
-# Получение загрузчиков данных
-train_loader = dataset.get_train_loader(batch_size=32)
-val_loader = dataset.get_val_loader(batch_size=32)
-test_loader = dataset.get_test_loader(batch_size=32)
+```powershell
+.\.venv\Scripts\python.exe generate_from_fasta_v2.py --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\structured_from_fasta.mid --metadata-output results\v2_generation\structured_from_fasta.json
 ```
 
-### Загрузка FASTA файлов
+## Частые Проблемы
 
-```python
-from bio_music_pipeline.extractors import FastaDatasetLoader, load_user_fasta_dataset
-
-# Загрузка из одной директории
-sequences = load_user_fasta_dataset(['data/fasta'])
-
-# Загрузка из нескольких директорий
-sequences = load_user_fasta_dataset([
-    'data/fasta/human',
-    'data/fasta/microbial',
-    '/absolute/path/to/custom/fasta'
-])
-
-# Извлечение био-векторов
-from bio_music_pipeline.extractors import BioVectorExtractor
-
-extractor = BioVectorExtractor()
-bio_vectors = []
-
-for seq in sequences:
-    features = extractor.extract_features(seq.sequence)
-    bio_vector = extractor.create_bio_vector(features, target_dim=128)
-    bio_vectors.append(bio_vector)
-```
-
-### Конфигурация путей к данным
-
-Создайте файл конфигурации `configs/data_paths_config.json`:
-
-```json
-{
-  "data_paths": {
-    "midi": [
-      "data/midi",
-      "/absolute/path/to/your/midi/files"
-    ],
-    "fasta": [
-      "data/fasta",
-      "/absolute/path/to/your/fasta/files"
-    ]
-  },
-  "loading_options": {
-    "min_midi_duration": 30.0,
-    "max_midi_duration": 300.0,
-    "min_sequence_length": 100,
-    "recursive_search": true
-  }
-}
-```
-
-Загрузка конфигурации:
-
-```python
-from bio_music_pipeline.data import UniversalDataLoader
-
-loader = UniversalDataLoader()
-config = loader.load_from_config('configs/data_paths_config.json')
-
-# Использование путей из конфигурации
-midi_dirs = config['midi_dirs']
-fasta_dirs = config['fasta_dirs']
-```
-
-## Продвинутые возможности
-
-### Универсальный загрузчик данных
-
-```python
-from bio_music_pipeline.data import UniversalDataLoader, DataLoaderConfig
-
-# Создание конфигурации
-config = DataLoaderConfig(
-    min_midi_duration=60.0,
-    max_midi_duration=600.0,
-    min_sequence_length=200
-)
-
-loader = UniversalDataLoader(config)
-
-# Поиск всех директорий с данными
-directories = loader.find_data_directories('/workspace')
-print(f"MIDI директории: {directories['midi_dirs']}")
-print(f"FASTA директории: {directories['fasta_dirs']}")
-
-# Валидация директории
-is_valid = loader.validate_directory('data/midi', file_type='midi')
-
-# Получение списка файлов
-midi_files = loader.get_midi_files('data/midi', recursive=True)
-fasta_files = loader.get_fasta_files('data/fasta', recursive=True)
-```
-
-### Загрузчик FASTA датасетов
-
-```python
-from bio_music_pipeline.extractors import FastaDatasetLoader, FastaSequence
-
-loader = FastaDatasetLoader(
-    min_sequence_length=100,
-    max_sequences=1000  # Ограничить количество последовательностей
-)
-
-# Загрузка из директории
-sequences = loader.load_from_directory('data/fasta', recursive=True)
-
-# Статистика
-stats = loader.get_statistics(sequences)
-print(f"Всего последовательностей: {stats['count']}")
-print(f"Средняя длина: {stats['mean_length']:.1f}")
-print(f"GC-состав: {stats['mean_gc_content']:.3f}")
-
-# Печать подробной сводки
-loader.print_summary(sequences)
-```
-
-## Пример полного конвейера
-
-```python
-from bio_music_pipeline.data import UniversalDataLoader, MusicDataset
-from bio_music_pipeline.extractors import load_user_fasta_dataset, BioVectorExtractor
-
-# 1. Настройка и сканирование данных
-setup_user_datasets('/workspace')
-loader = UniversalDataLoader()
-loader.print_data_summary()
-
-# 2. Загрузка FASTA последовательностей
-fasta_sequences = load_user_fasta_dataset(['data/fasta'])
-
-# 3. Извлечение био-векторов
-extractor = BioVectorExtractor()
-bio_vectors = []
-for seq in fasta_sequences:
-    if len(seq.sequence) >= 100:
-        features = extractor.extract_features(seq.sequence)
-        bio_vector = extractor.create_bio_vector(features, target_dim=128)
-        bio_vectors.append(bio_vector)
-
-print(f"Извлечено {len(bio_vectors)} био-векторов")
-
-# 4. Подготовка MIDI датасета
-music_dataset = MusicDataset(
-    data_dir='data/midi',
-    train_split=0.7,
-    val_split=0.15,
-    test_split=0.15
-)
-
-print(f"MIDI датасет: {len(music_dataset.train_data)} train, "
-      f"{len(music_dataset.val_data)} val, "
-      f"{len(music_dataset.test_data)} test")
-
-# 5. Обучение модели (см. run_pipeline.py)
-```
-
-## Устранение неполадок
-
-### Файлы не обнаруживаются
-
-Убедитесь, что:
-- Файлы имеют правильные расширения (.mid, .midi для MIDI; .fasta, .fa для FASTA)
-- Файлы находятся в правильной директории или поддиректории
-- Рекурсивный поиск включён (по умолчанию включён)
-
-### Ошибки при чтении файлов
-
-- **MIDI**: Проверьте, что файлы не повреждены и являются корректными MIDI файлами
-- **FASTA**: Убедитесь, что файлы в правильном формате FASTA (заголовки начинаются с '>')
-
-### Недостаточно данных
-
-Если файлов мало, конвейер может создать синтетические данные для демонстрации. 
-Для лучших результатов рекомендуется иметь:
-- Минимум 50-100 MIDI файлов для обучения
-- Минимум 50-100 FASTA последовательностей длиной >100 bp
-
-## Дополнительные ресурсы
-
-- Документация mido: https://mido.readthedocs.io/
-- Формат FASTA: https://en.wikipedia.org/wiki/FASTA_format
-- NCBI Handbook: https://www.ncbi.nlm.nih.gov/books/NBK21102/
+- MIDI-файлы не находятся: проверьте `music.midi_dirs` и расширения файлов.
+- Сегментов слишком мало: увеличьте корпус или ослабьте ограничения `music.min_notes_per_segment`, `music.bars_per_segment`, `music.max_segments`.
+- FASTA не читается: проверьте, что заголовки начинаются с `>` и последовательность содержит допустимые символы.
+- Результаты трудно воспроизвести: сохраните конфиг, `dataset_report.*`, `metrics.json` и checkpoint. Runtime-каталоги `results/`, `outputs/`, `tmp/`, `web/output/` не хранятся в git.

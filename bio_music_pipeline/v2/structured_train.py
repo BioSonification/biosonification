@@ -7,6 +7,7 @@ from dataclasses import asdict
 import json
 import random
 from pathlib import Path
+import time
 from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
@@ -169,15 +170,36 @@ def _build_melody_records(samples: Sequence[StructuredPairedSample]) -> List[dic
     return records
 
 
-def _build_loader(records: Sequence[dict], pad_token_id: int, batch_size: int, shuffle: bool, num_workers: int) -> DataLoader:
+def _build_loader(
+    records: Sequence[dict],
+    pad_token_id: int,
+    batch_size: int,
+    shuffle: bool,
+    num_workers: int,
+    pin_memory: bool = False,
+) -> DataLoader:
     dataset = StructuredTokenDataset(records, pad_token_id)
-    return DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        collate_fn=dataset.collate_fn,
-    )
+    loader_kwargs = {
+        "batch_size": batch_size,
+        "shuffle": shuffle,
+        "num_workers": num_workers,
+        "collate_fn": dataset.collate_fn,
+        "pin_memory": pin_memory,
+    }
+    if num_workers > 0:
+        loader_kwargs["persistent_workers"] = True
+        loader_kwargs["prefetch_factor"] = 2
+    return DataLoader(dataset, **loader_kwargs)
+
+
+def _to_device(batch: dict, device: torch.device) -> dict:
+    return {
+        "input_ids": batch["input_ids"].to(device, non_blocking=True),
+        "attention_mask": batch["attention_mask"].to(device, non_blocking=True),
+        "loss_mask": batch["loss_mask"].to(device, non_blocking=True),
+        "bio_vector": batch["bio_vector"].to(device, non_blocking=True),
+        "pair_weight": batch["pair_weight"].to(device, non_blocking=True),
+    }
 
 
 def _evaluate_model(model: BioConditionedSequenceModel, loader: DataLoader, device: torch.device, amp_enabled: bool) -> float:
@@ -185,14 +207,15 @@ def _evaluate_model(model: BioConditionedSequenceModel, loader: DataLoader, devi
     losses = []
     with torch.no_grad():
         for batch in loader:
+            device_batch = _to_device(batch, device)
             autocast_context = torch.autocast(device_type="cuda", enabled=amp_enabled) if device.type == "cuda" else nullcontext()
             with autocast_context:
                 outputs = model.compute_loss(
-                    input_ids=batch["input_ids"].to(device),
-                    attention_mask=batch["attention_mask"].to(device),
-                    loss_mask=batch["loss_mask"].to(device),
-                    bio_vector=batch["bio_vector"].to(device),
-                    pair_weight=batch["pair_weight"].to(device),
+                    input_ids=device_batch["input_ids"],
+                    attention_mask=device_batch["attention_mask"],
+                    loss_mask=device_batch["loss_mask"],
+                    bio_vector=device_batch["bio_vector"],
+                    pair_weight=device_batch["pair_weight"],
                 )
             losses.append(float(outputs["loss"].item()))
     return float(np.mean(losses)) if losses else 0.0
@@ -211,6 +234,7 @@ def _train_model(
     num_epochs: int,
     patience: int,
     checkpoint_path: Path,
+    label: str,
 ) -> List[dict]:
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled) if device.type == "cuda" else torch.amp.GradScaler("cpu", enabled=False)
@@ -219,18 +243,20 @@ def _train_model(
     patience_counter = 0
 
     for epoch in range(num_epochs):
+        epoch_started_at = time.time()
         model.train()
         optimizer.zero_grad(set_to_none=True)
         running_losses: List[float] = []
         for batch_index, batch in enumerate(train_loader):
+            device_batch = _to_device(batch, device)
             autocast_context = torch.autocast(device_type="cuda", enabled=amp_enabled) if device.type == "cuda" else nullcontext()
             with autocast_context:
                 outputs = model.compute_loss(
-                    input_ids=batch["input_ids"].to(device),
-                    attention_mask=batch["attention_mask"].to(device),
-                    loss_mask=batch["loss_mask"].to(device),
-                    bio_vector=batch["bio_vector"].to(device),
-                    pair_weight=batch["pair_weight"].to(device),
+                    input_ids=device_batch["input_ids"],
+                    attention_mask=device_batch["attention_mask"],
+                    loss_mask=device_batch["loss_mask"],
+                    bio_vector=device_batch["bio_vector"],
+                    pair_weight=device_batch["pair_weight"],
                 )
                 loss = outputs["loss"] / max(grad_accum_steps, 1)
             scaler.scale(loss).backward()
@@ -246,7 +272,23 @@ def _train_model(
 
         train_loss = float(np.mean(running_losses)) if running_losses else 0.0
         val_loss = _evaluate_model(model, val_loader, device, amp_enabled)
-        history.append({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
+        was_best = val_loss < best_val_loss
+        epoch_seconds = time.time() - epoch_started_at
+        history.append(
+            {
+                "epoch": epoch + 1,
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "epoch_seconds": epoch_seconds,
+                "best": was_best,
+            }
+        )
+        print(
+            f"[{label}] epoch {epoch + 1}/{num_epochs} "
+            f"train_loss={train_loss:.4f} val_loss={val_loss:.4f} "
+            f"seconds={epoch_seconds:.1f}",
+            flush=True,
+        )
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
@@ -295,6 +337,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
     val_pairs, _ = build_structured_paired_dataset(val_bio, val_music, config.pairing)
     test_pairs, _ = build_structured_paired_dataset(test_bio, test_music, config.pairing)
     save_structured_pairing_artifacts(str(output_dir / "pairing"), train_pairs, train_calibration)
+    pin_memory = bool(config.training.device == "cuda" or (config.training.device == "auto" and torch.cuda.is_available()))
 
     harmony_train_loader = _build_loader(
         _build_harmony_records(train_pairs),
@@ -302,6 +345,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         config.training.batch_size,
         True,
         config.training.num_workers,
+        pin_memory,
     )
     harmony_val_loader = _build_loader(
         _build_harmony_records(val_pairs),
@@ -309,6 +353,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         config.training.batch_size,
         False,
         config.training.num_workers,
+        pin_memory,
     )
     harmony_test_loader = _build_loader(
         _build_harmony_records(test_pairs),
@@ -316,6 +361,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         config.training.batch_size,
         False,
         config.training.num_workers,
+        pin_memory,
     )
     melody_train_loader = _build_loader(
         _build_melody_records(train_pairs),
@@ -323,6 +369,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         config.training.batch_size,
         True,
         config.training.num_workers,
+        pin_memory,
     )
     melody_val_loader = _build_loader(
         _build_melody_records(val_pairs),
@@ -330,6 +377,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         config.training.batch_size,
         False,
         config.training.num_workers,
+        pin_memory,
     )
     melody_test_loader = _build_loader(
         _build_melody_records(test_pairs),
@@ -337,12 +385,15 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         config.training.batch_size,
         False,
         config.training.num_workers,
+        pin_memory,
     )
 
     device = _device_from_config(config.training.device)
     amp_enabled = bool(device.type == "cuda" and config.training.mixed_precision)
     if hasattr(torch, "set_float32_matmul_precision"):
         torch.set_float32_matmul_precision("high")
+    if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True
 
     harmony_model = BioConditionedSequenceModel(
         vocab_size=len(harmony_tokenizer.vocab),
@@ -389,6 +440,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         num_epochs=config.training.harmony_num_epochs,
         patience=config.training.patience,
         checkpoint_path=harmony_checkpoint,
+        label="harmony",
     )
     melody_history = _train_model(
         melody_model,
@@ -403,6 +455,7 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         num_epochs=config.training.melody_num_epochs,
         patience=config.training.patience,
         checkpoint_path=melody_checkpoint,
+        label="melody",
     )
 
     harmony_state = _trusted_torch_load(harmony_checkpoint, device)
@@ -479,6 +532,18 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
         json.dump(
             {
                 "device": str(device),
+                "cuda_available": torch.cuda.is_available(),
+                "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "",
+                "gpu_total_memory_gb": (
+                    round(torch.cuda.get_device_properties(0).total_memory / 1024**3, 3)
+                    if torch.cuda.is_available()
+                    else 0.0
+                ),
+                "amp_enabled": amp_enabled,
+                "pin_memory": pin_memory,
+                "num_workers": config.training.num_workers,
+                "batch_size": config.training.batch_size,
+                "grad_accum_steps": config.training.grad_accum_steps,
                 "n_bio_sequences": len(bio_results),
                 "n_music_segments": len(structured_segments),
                 "n_train_pairs": len(train_pairs),

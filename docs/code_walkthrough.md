@@ -1,39 +1,22 @@
-# Подробный Разбор Кода
+# Разбор Кода
 
-Этот документ описывает текущий рабочий код после перехода на structured `v2` пайплайн. Главная идея новой реализации: генерация больше не идёт через один общий поток токенов, а разделена на `harmony` и `melody`.
+Этот документ описывает актуальный код после очистки репозитория. Главная реализация находится в structured `v2`: генерация разделена на `Bio -> Harmony` и `Bio + Harmony -> Melody`.
 
-## 1. Точки входа
+## Точки Входа
 
 ### `train_bio_music_v2.py`
 
-Основной CLI для обучения. Скрипт:
-
-1. читает `configs/pipeline_v2_small.json`
-2. вызывает `bio_music_pipeline.v2.train_structured_pipeline()`
-3. печатает JSON с путями к артефактам
+CLI для обучения. Скрипт читает конфиг, вызывает `bio_music_pipeline.v2.train_structured_pipeline()` и печатает JSON с путями к артефактам.
 
 ### `generate_from_fasta_v2.py`
 
-Основной CLI для инференса. Скрипт:
+CLI для инференса. Скрипт загружает `structured_pipeline.pt`, кодирует FASTA, генерирует гармонию, затем мелодию, сохраняет MIDI и JSON-метаданные.
 
-1. загружает `structured_pipeline.pt`
-2. кодирует FASTA
-3. генерирует гармонию
-4. генерирует мелодию
-5. сохраняет MIDI и JSON-метаданные
-
-### Legacy entrypoints
-
-- `run_pipeline.py`
-- `generate_from_fasta.py`
-
-Они оставлены в репозитории, но не являются рекомендуемым путём запуска.
-
-## 2. Пакет `bio_music_pipeline/v2`
+## Пакет `bio_music_pipeline/v2`
 
 ### `config.py`
 
-Содержит все dataclass-конфиги:
+Содержит dataclass-конфиги:
 
 - `BioEncoderConfig`
 - `MusicDataConfig`
@@ -42,162 +25,101 @@
 - `GenerationConfig`
 - `V2PipelineConfig`
 
-Здесь задаются:
-
-- размерности bio-вектора
-- параметры сегментации музыки
-- число эпох для `harmony` и `melody`
-- длина генерации и sampling-параметры
+Модуль умеет читать JSON-конфиг с диска и восстанавливать конфиг из checkpoint metadata.
 
 ### `bio.py`
 
-Главный biological encoder.
+Biological encoder. Он читает FASTA, определяет тип последовательности, очищает и фрагментирует записи, считает nucleotide/protein/RNA признаки и возвращает:
 
-Ключевые сущности:
+- `vector`
+- `control_profile`
+- `tonic_pc_hint`
 
-- `BioEncodingResult`
-- `BiologicalSequenceEncoder`
+### `corpus.py`
 
-Что делает:
+Небольшой слой работы с музыкальным корпусом:
 
-1. читает FASTA
-2. определяет тип последовательности
-3. очищает и фрагментирует запись
-4. считает sequence features
-5. при необходимости переводит в белок
-6. извлекает protein features через `ProtParam`
-7. извлекает RNA folding признаки через `ViennaRNA`
-8. опционально добавляет `ESM` embedding block
-9. возвращает `vector`, `control_profile`, `tonic_pc_hint`
+- рекурсивно находит поддерживаемые score-файлы;
+- при необходимости создаёт fallback-корпус из `music21`.
 
 ### `structured_music.py`
 
-Это ключевой модуль новой архитектуры.
-
-Главные сущности:
+Ключевой музыкальный модуль. Он извлекает из score:
 
 - `HarmonyBar`
 - `MelodyEvent`
 - `StructuredMusicSegment`
-- `HarmonyTokenizer`
-- `MelodyTokenizer`
 
-Что делает модуль:
-
-1. загружает полифонический корпус
-2. выбирает мелодическую партию
-3. извлекает аккорды по тактам
-4. извлекает мелодические события относительно текущего аккорда
-5. токенизирует `harmony`
-6. токенизирует `melody`
-7. рендерит обе дорожки обратно в MIDI
-
-Важный момент: `decode_melody()` нормализует выход так, чтобы мелодия:
-
-- не выходила за границы гармонической сетки
-- не наслаивалась сама на себя
-- оставалась монофонической
+Здесь же находятся `HarmonyTokenizer`, `MelodyTokenizer` и renderer двухдорожечного MIDI. `decode_melody()` удерживает мелодию в пределах гармонической сетки, схлопывает события с одинаковым onset и не допускает самоналожений.
 
 ### `structured_pairing.py`
 
-Новый pairing-слой.
+Сопоставляет bio fragments и structured music segments через многомерные дескрипторы:
 
-Главные сущности:
+- tempo;
+- note density;
+- harmonic change rate;
+- register;
+- harmony complexity;
+- mode.
 
-- `StructuredPairedSample`
-- `calibrate_bio_profiles()`
-- `build_structured_paired_dataset()`
-- `save_structured_pairing_artifacts()`
-
-Модуль сопоставляет bio fragments и structured music segments через многомерные дескрипторы и формирует веса пар.
+Pairing использует train-time calibration и many-to-many top-k matching.
 
 ### `structured_model.py`
 
-Универсальная autoregressive модель:
-
-- `BioConditionedSequenceModel`
-
-Она используется и для `harmony`, и для `melody`.
-
-Что внутри:
-
-- token embedding
-- positional embedding
-- projection биовектора в conditioning memory
-- causal Transformer stack
-- LM head
-- sampling с `top-k/top-p`
-
-`compute_loss()` поддерживает `loss_mask`, поэтому префиксные control-токены и harmony-prefix можно не штрафовать как целевую часть последовательности.
+Содержит `BioConditionedSequenceModel`: autoregressive Transformer с conditioning по bio vector. Один и тот же класс используется для harmony и melody моделей.
 
 ### `structured_train.py`
 
-Главный orchestration-модуль обучения.
+Orchestration обучения:
 
-Ключевая функция:
-
-- `train_structured_pipeline()`
-
-Что она делает:
-
-1. загружает конфиг
-2. кодирует FASTA
-3. строит structured music corpus
-4. делает раздельный split bio/music
-5. собирает pairing
-6. строит dataset и dataloader для `harmony`
-7. обучает `harmony_model`
-8. строит dataset и dataloader для `melody`
-9. обучает `melody_model`
-10. сохраняет checkpoints и `metrics.json`
-11. делает smoke generation
+1. загружает конфиг;
+2. кодирует FASTA;
+3. строит structured music corpus;
+4. делает split bio/music;
+5. собирает pairing;
+6. обучает harmony model;
+7. обучает melody model;
+8. сохраняет checkpoints, metrics и smoke MIDI.
 
 ### `structured_generate.py`
 
-Главный inference-модуль.
+Inference:
 
-Ключевая функция:
+1. загружает checkpoint;
+2. восстанавливает конфиг и calibration;
+3. кодирует FASTA;
+4. генерирует harmony;
+5. использует harmony как prefix для melody;
+6. рендерит MIDI;
+7. пишет metadata.
 
-- `generate_structured_music_from_fasta()`
+### `evaluate.py`
 
-Что она делает:
+Считает технические метрики generated MIDI, строит random harmony+melody baseline и формирует JSON/Markdown evaluation report.
 
-1. загружает checkpoint
-2. восстанавливает calibration
-3. кодирует FASTA
-4. генерирует гармонию
-5. подаёт гармонию в мелодическую модель
-6. рендерит двухдорожечный MIDI
-7. пишет JSON с метаданными генерации
+### `dataset_report.py`
 
-### Старые модули внутри `v2`
+Фиксирует фактические входные данные: FASTA records/fragments, MIDI count, source kind, segment count и сводки по tempo/key/density.
 
-В каталоге `bio_music_pipeline/v2` всё ещё лежат более ранние single-stream модули:
+## Тесты
 
-- `dataset.py`
-- `pairing.py`
-- `model.py`
-- `train.py`
-- `generate.py`
+`tests/test_v2_pipeline.py` проверяет:
 
-Сейчас они полезны скорее как промежуточная историческая стадия перехода от legacy-архитектуры к structured pipeline.
+- bio encoder;
+- извлечение structured music и render обратно в score;
+- forward/generate модели;
+- ограничения `decode_melody()`;
+- CLI generation;
+- evaluation helpers;
+- dataset report;
+- состав stable exports.
 
-## 3. Тесты
+Это не заменяет полноценное обучение, но быстро ловит структурные поломки после рефакторинга.
 
-### `tests/test_v2_pipeline.py`
+## Артефакты
 
-Содержит четыре smoke-проверки:
-
-1. `bio encoder` на `quick_sample.fa`
-2. извлечение structured music и рендер обратно в score
-3. forward/generate для `BioConditionedSequenceModel`
-4. проверка, что `decode_melody()` удерживает мелодию внутри формы и без overlap
-
-Это не заменяет full training run, но быстро ловит структурные поломки.
-
-## 4. Артефакты после обучения
-
-После `train_bio_music_v2.py` получаем:
+После обучения ожидаются:
 
 - `resolved_config.json`
 - `pair_manifest.json`
@@ -208,7 +130,7 @@
 - `metrics.json`
 - `structured_sample.mid`
 
-После `generate_from_fasta_v2.py` получаем:
+После генерации ожидаются:
 
 - `structured_from_fasta.mid`
 - `structured_from_fasta.json`
