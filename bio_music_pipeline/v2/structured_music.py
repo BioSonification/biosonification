@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
+from tqdm import tqdm
 
 from .config import MusicDataConfig
 from .corpus import bootstrap_music21_corpus, iter_score_files
@@ -1016,6 +1017,7 @@ def load_structured_music_corpus(
     if music_config.segment_cache_path:
         cached_segments = _load_segment_cache(Path(music_config.segment_cache_path), music_config)
         if cached_segments:
+            print(f"Loaded {len(cached_segments)} segments from cache")
             return cached_segments, harmony_tokenizer, melody_tokenizer
 
     midi_dirs = list(music_config.midi_dirs)
@@ -1031,17 +1033,28 @@ def load_structured_music_corpus(
     if music_config.max_score_files > 0:
         score_files = score_files[: music_config.max_score_files]
 
+    print(f"Processing {len(score_files)} MIDI files to extract segments...")
     segments: List[StructuredMusicSegment] = []
-    for score_path in score_files:
-        fast_segments = _pop909_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
-        if fast_segments is None:
-            fast_segments = _structured_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
-        segments.extend(fast_segments)
-        if music_config.max_segments > 0 and len(segments) >= music_config.max_segments:
-            segments = segments[: music_config.max_segments]
-            break
+
+    # Process with progress bar
+    for score_path in tqdm(score_files, desc="Extracting music segments", unit="file"):
+        try:
+            fast_segments = _pop909_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
+            if fast_segments is None:
+                fast_segments = _structured_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
+            segments.extend(fast_segments)
+            if music_config.max_segments > 0 and len(segments) >= music_config.max_segments:
+                segments = segments[: music_config.max_segments]
+                break
+        except Exception as e:
+            # Skip files that fail to parse
+            continue
+
     if not segments:
         raise ValueError("No valid structured chord+melody segments were found in the configured music corpus.")
+
+    print(f"Extracted {len(segments)} music segments from {len(score_files)} files")
+
     if music_config.segment_cache_path:
         _write_segment_cache(Path(music_config.segment_cache_path), music_config, segments)
     return segments, harmony_tokenizer, melody_tokenizer

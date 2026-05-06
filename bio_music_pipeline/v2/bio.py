@@ -10,6 +10,7 @@ import re
 from typing import Dict, List, Optional, Sequence
 
 import numpy as np
+from tqdm import tqdm
 
 from .config import BioEncoderConfig
 
@@ -84,29 +85,60 @@ class BiologicalSequenceEncoder:
 
     def _parse_fasta(self, fasta_path: str) -> List[tuple[str, str]]:
         records: List[tuple[str, str]] = []
-        for record in SeqIO.parse(fasta_path, "fasta"):
-            sequence = str(record.seq).strip()
-            if not sequence:
-                continue
-            records.append((record.id, sequence))
+        path = Path(fasta_path)
+
+        # Handle both single file and directory
+        if path.is_dir():
+            # Directory with multiple FASTA files
+            fasta_files = sorted(path.glob("*.fna")) + sorted(path.glob("*.fa")) + sorted(path.glob("*.fasta"))
+            for fasta_file in fasta_files:
+                for record in SeqIO.parse(str(fasta_file), "fasta"):
+                    sequence = str(record.seq).strip()
+                    if not sequence:
+                        continue
+                    records.append((record.id, sequence))
+        else:
+            # Single FASTA file
+            for record in SeqIO.parse(fasta_path, "fasta"):
+                sequence = str(record.seq).strip()
+                if not sequence:
+                    continue
+                records.append((record.id, sequence))
         return records
 
     def encode_fasta(self, fasta_path: str) -> List[BioEncodingResult]:
         path = Path(fasta_path)
         if not path.exists():
             raise FileNotFoundError(f"FASTA file not found: {path}")
+
+        # Parse all records first to show progress
+        records = self._parse_fasta(str(path))
+        print(f"Loaded {len(records)} FASTA records, extracting fragments...")
+
         results: List[BioEncodingResult] = []
-        for record_id, sequence in self._parse_fasta(str(path)):
-            for fragment_index, fragment in enumerate(self._fragment_sequence(sequence)):
+        skipped_count = 0
+
+        # Process with progress bar
+        for record_id, sequence in tqdm(records, desc="Processing sequences", unit="seq"):
+            fragments = list(self._fragment_sequence(sequence))
+            for fragment_index, fragment in enumerate(fragments):
                 if len(fragment) < self.config.min_sequence_length:
                     continue
                 fragment_id = f"{record_id}::frag{fragment_index:03d}"
-                results.append(self.encode_sequence(fragment, sequence_id=fragment_id))
+                try:
+                    results.append(self.encode_sequence(fragment, sequence_id=fragment_id))
+                except ValueError as e:
+                    # Skip fragments that are too short after cleaning
+                    skipped_count += 1
+                    continue
+
         if not results:
             raise ValueError(
                 f"No valid sequences found in {path}. "
                 f"Expected at least one record with length >= {self.config.min_sequence_length}."
             )
+
+        print(f"Extracted {len(results)} biological fragments (skipped {skipped_count} short fragments)")
         return results
 
     def _fragment_sequence(self, sequence: str) -> List[str]:

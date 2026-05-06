@@ -13,11 +13,27 @@ from .bio import BiologicalSequenceEncoder
 from .config import V2PipelineConfig, load_v2_config
 from .corpus import iter_score_files
 from .structured_music import load_structured_music_corpus
+from ..utils.progress_logger import ProgressLogger
 
 try:
     from Bio import SeqIO
 except ImportError:  # pragma: no cover
     SeqIO = None
+
+# Global logger instance
+_logger: Optional[ProgressLogger] = None
+
+
+def set_logger(logger: ProgressLogger) -> None:
+    """Set the global logger for dataset report operations."""
+    global _logger
+    _logger = logger
+
+
+def _log(msg: str) -> None:
+    """Log a message if logger is available."""
+    if _logger:
+        _logger.info(msg)
 
 
 @dataclass
@@ -42,6 +58,7 @@ def _summary(values: Sequence[float]) -> Dict[str, float]:
 
 
 def _fasta_records(path: str, max_preview: int) -> Dict[str, Any]:
+    _log(f"Loading FASTA records from {path}")
     fasta_path = Path(path)
     if SeqIO is None:
         raise ImportError("Biopython is required to inspect FASTA files.")
@@ -56,17 +73,43 @@ def _fasta_records(path: str, max_preview: int) -> Dict[str, Any]:
 
     lengths = []
     preview = []
-    for index, record in enumerate(SeqIO.parse(str(fasta_path), "fasta")):
-        sequence = str(record.seq)
-        lengths.append(len(sequence))
-        if len(preview) < max_preview:
-            preview.append(
-                {
-                    "index": index,
-                    "id": record.id,
-                    "length": len(sequence),
-                }
-            )
+
+    # Handle both single file and directory
+    if fasta_path.is_dir():
+        # Directory with multiple FASTA files
+        fasta_files = sorted(fasta_path.glob("*.fna")) + sorted(fasta_path.glob("*.fa")) + sorted(fasta_path.glob("*.fasta"))
+        _log(f"Found {len(fasta_files)} FASTA files in directory")
+
+        pbar = _logger.progress_bar(fasta_files, desc="Loading FASTA files") if _logger else fasta_files
+        for fasta_file in pbar:
+            for record in SeqIO.parse(str(fasta_file), "fasta"):
+                sequence = str(record.seq)
+                lengths.append(len(sequence))
+                if len(preview) < max_preview:
+                    preview.append(
+                        {
+                            "index": len(preview),
+                            "id": record.id,
+                            "length": len(sequence),
+                            "file": fasta_file.name,
+                        }
+                    )
+    else:
+        # Single FASTA file
+        _log("Loading single FASTA file")
+        for index, record in enumerate(SeqIO.parse(str(fasta_path), "fasta")):
+            sequence = str(record.seq)
+            lengths.append(len(sequence))
+            if len(preview) < max_preview:
+                preview.append(
+                    {
+                        "index": index,
+                        "id": record.id,
+                        "length": len(sequence),
+                    }
+                )
+
+    _log(f"Loaded {len(lengths)} FASTA records")
     return {
         "path": str(fasta_path),
         "exists": True,
@@ -77,10 +120,13 @@ def _fasta_records(path: str, max_preview: int) -> Dict[str, Any]:
 
 
 def _bio_fragment_summary(config: V2PipelineConfig) -> Dict[str, Any]:
+    _log("Extracting biological fragments")
     encoder = BiologicalSequenceEncoder(config.bio)
     try:
         encodings = encoder.encode_fasta(config.fasta_path)
+        _log(f"Extracted {len(encodings)} biological fragments")
     except Exception as exc:
+        _log(f"Failed to extract biological fragments: {exc}")
         return {
             "status": "failed",
             "error": str(exc),
@@ -101,7 +147,9 @@ def _bio_fragment_summary(config: V2PipelineConfig) -> Dict[str, Any]:
 
 
 def _music_file_manifest(config: V2PipelineConfig) -> Dict[str, Any]:
+    _log("Scanning music files")
     score_files = iter_score_files(config.music.midi_dirs)
+    _log(f"Found {len(score_files)} music files")
     suffix_counts: Dict[str, int] = {}
     for path in score_files:
         suffix = path.suffix.lower()
@@ -129,9 +177,12 @@ def _music_file_manifest(config: V2PipelineConfig) -> Dict[str, Any]:
 
 
 def _structured_segment_summary(config: V2PipelineConfig) -> Dict[str, Any]:
+    _log("Loading structured music segments (this may take 10-30 minutes)")
     try:
         segments, _, _ = load_structured_music_corpus(config.music)
+        _log(f"Loaded {len(segments)} structured segments")
     except Exception as exc:
+        _log(f"Failed to load structured segments: {exc}")
         return {
             "status": "failed",
             "error": str(exc),
@@ -215,9 +266,17 @@ def _write_markdown(report: Dict[str, Any], output_path: Path) -> None:
 
 
 def build_dataset_report(report_config: DatasetReportConfig) -> Dict[str, Any]:
+    _log("=" * 80)
+    _log("Building dataset report")
+    _log("=" * 80)
+
     config = load_v2_config(report_config.config_path)
     output_dir = Path(report_config.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    _log(f"Config: {report_config.config_path}")
+    _log(f"Output: {report_config.output_dir}")
+    _log("")
 
     report = {
         "config_path": report_config.config_path,
@@ -241,4 +300,12 @@ def build_dataset_report(report_config: DatasetReportConfig) -> Dict[str, Any]:
     md_path = output_dir / "dataset_report.md"
     json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     _write_markdown(report, md_path)
+
+    _log("")
+    _log("=" * 80)
+    _log("Dataset report complete")
+    _log(f"JSON: {json_path}")
+    _log(f"Markdown: {md_path}")
+    _log("=" * 80)
+
     return report
