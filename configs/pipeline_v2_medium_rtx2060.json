@@ -21,12 +21,14 @@
   },
   "music": {
     "midi_dirs": [
-      "data/midi/POP909/POP909",
-      "data/midi/maestro-v3.0.0"
+      "data/midi/POP909/POP909"
     ],
     "use_music21_corpus_fallback": false,
     "music21_composers": [],
     "max_music21_files": 0,
+    "max_score_files": 0,
+    "max_segments": 0,
+    "segment_cache_path": "data/cache/music_segments_pop909.json",
     "bars_per_segment": 4,
     "segment_hop_bars": 2,
     "steps_per_beat": 4,

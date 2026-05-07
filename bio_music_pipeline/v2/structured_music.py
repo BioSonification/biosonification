@@ -630,10 +630,27 @@ def _structured_segments_from_score(
     if not measure_numbers:
         return []
     tempo_bpm = _tempo_bpm(score)
+
+    # Fast key detection: use key signature from score instead of full analysis
     try:
-        key_signature = score.analyze("key")
+        # Try to get key signature from the score metadata (fast)
+        key_signature = None
+        for part in score.parts:
+            for element in part.flatten().getElementsByClass(key.KeySignature):
+                key_signature = element
+                break
+            if key_signature:
+                break
+
+        # If no key signature found, default to C major (fast)
+        if key_signature is None:
+            key_signature = key.Key("C")
+        elif not isinstance(key_signature, key.Key):
+            # Convert KeySignature to Key
+            key_signature = key.Key(key_signature.asKey().tonic.name)
     except Exception:
         key_signature = key.Key("C")
+
     start_measure = min(measure_numbers)
     max_measure = max(measure_numbers)
     segments: List[StructuredMusicSegment] = []
@@ -1035,10 +1052,18 @@ def load_structured_music_corpus(
 
     print(f"Processing {len(score_files)} MIDI files to extract segments...")
     segments: List[StructuredMusicSegment] = []
+    skipped_count = 0
+    error_count = 0
 
     # Process with progress bar
     for score_path in tqdm(score_files, desc="Extracting music segments", unit="file"):
         try:
+            # Skip very large files (>2MB) as they take too long
+            file_size_mb = score_path.stat().st_size / (1024 * 1024)
+            if file_size_mb > 2.0:
+                skipped_count += 1
+                continue
+
             fast_segments = _pop909_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
             if fast_segments is None:
                 fast_segments = _structured_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
@@ -1048,12 +1073,13 @@ def load_structured_music_corpus(
                 break
         except Exception as e:
             # Skip files that fail to parse
+            error_count += 1
             continue
 
     if not segments:
         raise ValueError("No valid structured chord+melody segments were found in the configured music corpus.")
 
-    print(f"Extracted {len(segments)} music segments from {len(score_files)} files")
+    print(f"Extracted {len(segments)} music segments from {len(score_files)} files (skipped {skipped_count} large files, {error_count} errors)")
 
     if music_config.segment_cache_path:
         _write_segment_cache(Path(music_config.segment_cache_path), music_config, segments)

@@ -5,10 +5,11 @@ from __future__ import annotations
 from contextlib import nullcontext
 from dataclasses import asdict
 import json
+import pickle
 import random
 from pathlib import Path
 import time
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -300,7 +301,11 @@ def _train_model(
     return history
 
 
-def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
+def train_structured_pipeline(
+    config_path: str | None = None,
+    bio_cache_path: Optional[str] = None,
+    music_cache_path: Optional[str] = None,
+) -> Dict[str, str]:
     config = load_v2_config(config_path)
     _set_seed(config.training.seed)
     output_dir = config.output_path
@@ -308,9 +313,32 @@ def train_structured_pipeline(config_path: str | None = None) -> Dict[str, str]:
     with open(output_dir / "resolved_config.json", "w", encoding="utf-8") as handle:
         json.dump(asdict(config), handle, indent=2)
 
-    encoder = BiologicalSequenceEncoder(config.bio)
-    bio_results = encoder.encode_fasta(config.fasta_path)
-    structured_segments, harmony_tokenizer, melody_tokenizer = load_structured_music_corpus(config.music)
+    # Load or extract biological data
+    if bio_cache_path:
+        print(f"Loading biological data from cache: {bio_cache_path}")
+        with open(bio_cache_path, "rb") as f:
+            bio_cache = pickle.load(f)
+        bio_results = bio_cache["encodings"]
+        print(f"Loaded {len(bio_results)} biological fragments from cache")
+    else:
+        print("Extracting biological data from FASTA...")
+        encoder = BiologicalSequenceEncoder(config.bio)
+        bio_results = encoder.encode_fasta(config.fasta_path)
+        print(f"Extracted {len(bio_results)} biological fragments")
+
+    # Load or extract music data
+    if music_cache_path:
+        print(f"Loading music data from cache: {music_cache_path}")
+        with open(music_cache_path, "rb") as f:
+            music_cache = pickle.load(f)
+        structured_segments = music_cache["segments"]
+        harmony_tokenizer = music_cache["harmony_tokenizer"]
+        melody_tokenizer = music_cache["melody_tokenizer"]
+        print(f"Loaded {len(structured_segments)} music segments from cache")
+    else:
+        print("Extracting music data from MIDI...")
+        structured_segments, harmony_tokenizer, melody_tokenizer = load_structured_music_corpus(config.music)
+        print(f"Extracted {len(structured_segments)} music segments")
 
     train_bio, val_bio, test_bio = _split_items(
         bio_results,
