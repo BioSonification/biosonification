@@ -169,6 +169,17 @@ def generate_structured_music_from_fasta(
     mode_name = _mode_from_profile(calibrated_profile)
     bio_tensor = torch.tensor(bio_result.vector, dtype=torch.float32, device=device)
 
+    # Calculate num_bars based on sequence length (1 bar per ~200 bp, min 8, max 32)
+    sequence_length = len(bio_result.cleaned_sequence)
+    num_bars = max(8, min(32, sequence_length // 200))
+
+    # Scale harmony tokens proportionally (8 tokens per bar on average)
+    harmony_max_tokens = num_bars * 8
+
+    # Scale melody tokens to ensure full coverage (48 tokens per bar on average)
+    melody_max_tokens = num_bars * 48
+    melody_min_tokens = num_bars * 16  # Minimum to avoid early stopping
+
     harmony_prefix = [
         harmony_tokenizer.bos_token_id,
         *harmony_tokenizer.control_tokens(calibrated_profile, bio_result.tonic_pc_hint, mode_name),
@@ -177,13 +188,13 @@ def generate_structured_music_from_fasta(
     generated_harmony = harmony_model.generate(
         bio_vector=bio_tensor,
         prefix_token_ids=harmony_prefix,
-        max_new_tokens=config.generation.harmony_max_new_tokens,
+        max_new_tokens=harmony_max_tokens,
         temperature=config.generation.harmony_temperature,
         top_k=config.generation.harmony_top_k,
         top_p=config.generation.harmony_top_p,
         stop_token_ids=[harmony_tokenizer.eos_token_id],
     )
-    harmony_bars = harmony_tokenizer.decode_progression(generated_harmony.tolist(), config.generation.num_bars)
+    harmony_bars = harmony_tokenizer.decode_progression(generated_harmony.tolist(), num_bars)
 
     melody_prefix = [
         melody_tokenizer.bos_token_id,
@@ -194,11 +205,11 @@ def generate_structured_music_from_fasta(
     generated_melody = melody_model.generate(
         bio_vector=bio_tensor,
         prefix_token_ids=melody_prefix,
-        max_new_tokens=config.generation.melody_max_new_tokens,
+        max_new_tokens=melody_max_tokens,
         temperature=config.generation.melody_temperature,
         top_k=config.generation.melody_top_k,
         top_p=config.generation.melody_top_p,
-        min_new_tokens=config.generation.melody_min_new_tokens,
+        min_new_tokens=melody_min_tokens,
         stop_token_ids=[melody_tokenizer.eos_token_id],
     )
     decoded_melody = melody_tokenizer.decode_melody(generated_melody.tolist(), harmony_bars, bio_result.tonic_pc_hint)
@@ -222,6 +233,10 @@ def generate_structured_music_from_fasta(
         "effective_config_hash": _config_hash(config),
         "device": str(device),
         "tempo_bpm": tempo_bpm,
+        "num_bars": num_bars,
+        "harmony_max_tokens": harmony_max_tokens,
+        "melody_max_tokens": melody_max_tokens,
+        "melody_min_tokens": melody_min_tokens,
         "calibrated_profile": [float(value) for value in calibrated_profile],
         "generated_harmony_bars": [
             {"root_pc": int(bar.root_pc), "quality": bar.quality, "hold": bool(bar.hold)}
