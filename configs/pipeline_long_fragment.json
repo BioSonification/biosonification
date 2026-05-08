@@ -7,7 +7,11 @@
     "fragment_length": 6400,
     "fragment_stride": 1800,
     "max_fragments_per_record": 10,
-    "kmer_sizes": [1, 2, 3],
+    "kmer_sizes": [
+      1,
+      2,
+      3
+    ],
     "max_kmer_features": 84,
     "use_vienna_rna": false,
     "use_protein_features": true,
@@ -81,8 +85,8 @@
     "dim_feedforward": 1536,
     "dropout": 0.2,
     "max_seq_len": 896,
-    "harmony_max_seq_len": 128,
-    "melody_max_seq_len": 640
+    "harmony_max_seq_len": 256,
+    "melody_max_seq_len": 1280
   },
   "generation": {
     "num_bars": 8,
