@@ -17,7 +17,7 @@ from .evaluate import (
     run_structured_evaluation,
 )
 from .dataset_report import DatasetReportConfig, build_dataset_report
-from .structured_generate import generate_structured_music_from_fasta
+from .structured_generate import generate_structured_music_from_fasta, generate_structured_music_from_fasta_fragmented
 from .structured_model import BioConditionedSequenceModel
 from .structured_music import (
     HarmonyBar,
@@ -59,4 +59,5 @@ __all__ = [
     "BioConditionedSequenceModel",
     "train_structured_pipeline",
     "generate_structured_music_from_fasta",
+    "generate_structured_music_from_fasta_fragmented",
 ]

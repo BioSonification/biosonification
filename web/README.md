@@ -1,18 +1,20 @@
 # BioSonification Web Interface
 
-Flask interface for the current structured `v2` biosonification pipeline. It generates a two-track symbolic MIDI file from FASTA input:
+Flask interface for the structured `v2` biosonification pipeline with **fragmented generation**. It generates a two-track symbolic MIDI file from FASTA input:
 
 - harmony track: bar-level chord grid
 - melody track: monophonic melody conditioned on the generated harmony
 
-## Features
+## Key Features
 
+- **Fragmented Generation**: Automatically splits long sequences into fragments and generates high-quality music for each
+- **4-Bar Model**: Uses the best-performing model (val_loss 0.145 for harmony, 0.157 for melody)
+- **Adaptive Length**: Longer sequences → longer compositions without quality degradation
 - **FASTA Input**: Paste sequence or upload file (drag & drop supported)
-- **Music Generation**: Generate structured MIDI from biological sequences
 - **Examples Gallery**: Pre-generated compositions from different organisms
 - **Audio Playback**: Listen to examples directly in browser (requires fluidsynth/timidity)
 - **MIDI Download**: Download generated and example MIDI files
-- **Metadata Display**: View generation parameters (tempo, key, bars, notes)
+- **Metadata Display**: View generation parameters (tempo, key, bars, notes, fragments)
 
 ## Requirements
 
@@ -22,22 +24,16 @@ Install the project dependencies from the repository root:
 pip install -r requirements.txt
 ```
 
-Train the structured `v2` model first, or point the web app at an existing checkpoint:
-
-```bash
-python train_bio_music_v2.py --config configs/pipeline_v2_small.json
-```
-
-By default the web app looks for:
-
-1. `results/v2_music21_rtx2060/checkpoints/structured_pipeline.pt`
-2. newest `results/*/checkpoints/structured_pipeline.pt`
+The web interface automatically uses:
+- **Model**: `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-bar model, best quality)
+- **Config**: `configs/pipeline_v2_medium_rtx2060_fast.json`
+- **Generation**: Fragmented approach with `bars_per_fragment=4`
 
 Optional overrides:
 
 ```bash
 export BIOSONIFICATION_STRUCTURED_CHECKPOINT=/absolute/path/to/structured_pipeline.pt
-export BIOSONIFICATION_CONFIG_PATH=/absolute/path/to/pipeline_v2_small.json
+export BIOSONIFICATION_CONFIG_PATH=/absolute/path/to/config.json
 export BIOSONIFICATION_DEVICE=auto
 ```
 
@@ -63,6 +59,16 @@ export BIOSONIFICATION_DEBUG=0
 
 The web form accepts pasted text or FASTA upload. DNA, RNA, and protein-like sequences are accepted by the structured `v2` encoder. The minimum cleaned sequence length is 90 symbols for the default config.
 
+**Fragmented Generation:**
+- Sequences are automatically split into 1800 bp fragments
+- Each fragment generates 4 bars of music
+- All fragments are concatenated into one MIDI file
+
+**Examples:**
+- 1800 bp → 1 fragment → 4 bars (~8 seconds)
+- 3600 bp → 2 fragments → 8 bars (~16 seconds)
+- 10000 bp → 6 fragments → 24 bars (~48 seconds)
+
 ## API
 
 - `GET /api/status` returns generator readiness, structured checkpoint path, config path, and audio synthesizer status.
@@ -77,11 +83,18 @@ The generation response includes structured metadata:
 
 - `sequence_id`
 - `sequence_type`
-- `cleaned_sequence_length`
-- `tempo_bpm`
-- `tonic_pc_hint`
-- `generated_harmony_bars`
-- `generated_melody_note_count`
+- `full_sequence_length`
+- `num_fragments`
+- `bars_per_fragment`
+- `total_bars`
+- `total_melody_notes`
+- `fragments` — array with per-fragment details:
+  - `fragment_index`
+  - `start_position`
+  - `fragment_length`
+  - `tempo_bpm`
+  - `harmony_bars`
+  - `melody_notes`
 
 ## Output
 
@@ -100,3 +113,21 @@ This directory is ignored by git.
 ## Scientific Note
 
 The system uses biological features as structured conditioning signals for symbolic music generation. It does not demonstrate or claim a causal relationship between genes and music.
+
+## Technical Implementation
+
+**Generator Backend** (`web/generator.py`):
+- Uses `generate_structured_music_from_fasta_fragmented()` for all generations
+- Automatically selects the 4-bar model (`v2_medium_rtx2060_fast`) for best quality
+- Fragments long sequences (>1800 bp) into multiple segments
+- Concatenates all segments into a single MIDI file
+
+**Model Selection Priority**:
+1. `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-bar, best)
+2. `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt` (8-bar, fallback)
+3. Newest checkpoint in `results/*/checkpoints/structured_pipeline.pt`
+
+**Why Fragmented Generation**:
+- Models trained on short segments (4-8 bars) produce poor quality for long compositions
+- Fragmentation keeps each segment within the training distribution
+- Result: stable quality regardless of sequence length

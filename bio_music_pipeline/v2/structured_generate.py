@@ -250,3 +250,225 @@ def generate_structured_music_from_fasta(
         with open(meta_path, "w", encoding="utf-8") as handle:
             json.dump(metadata, handle, indent=2)
     return metadata
+
+
+def generate_structured_music_from_fasta_fragmented(
+    fasta_path: str,
+    checkpoint_path: str,
+    output_path: str,
+    bars_per_fragment: int = 4,
+    config_path: Optional[str] = None,
+    record_index: int = 0,
+    metadata_output: Optional[str] = None,
+    device_name: str = "auto",
+) -> Dict[str, Any]:
+    """
+    Generate music from FASTA by fragmenting the sequence and concatenating results.
+
+    This approach generates multiple short segments (4 or 8 bars each) and concatenates them,
+    ensuring each segment stays within the model's training distribution for better quality.
+
+    Args:
+        fasta_path: Path to FASTA file
+        checkpoint_path: Path to model checkpoint
+        output_path: Output MIDI path
+        bars_per_fragment: Number of bars to generate per fragment (4 or 8)
+        config_path: Optional config path
+        record_index: Which record to use from FASTA
+        metadata_output: Optional metadata JSON output path
+        device_name: Device to use (auto/cuda/cpu)
+
+    Returns:
+        Metadata dictionary with generation info
+    """
+    import music21
+
+    checkpoint = _trusted_torch_load(checkpoint_path, map_location="cpu")
+    config, config_source = _load_effective_config(checkpoint, config_path)
+    _validate_checkpoint_compatibility(config, checkpoint)
+    calibration = checkpoint.get("train_calibration")
+    if calibration is None:
+        raise ValueError("Checkpoint does not contain train calibration statistics.")
+
+    encoder = BiologicalSequenceEncoder(config.bio)
+
+    # Parse FASTA to get the full sequence
+    from Bio import SeqIO
+    records = list(SeqIO.parse(fasta_path, "fasta"))
+    if record_index < 0 or record_index >= len(records):
+        raise IndexError(f"record_index={record_index} is outside the valid range [0, {len(records) - 1}]")
+
+    record = records[record_index]
+    full_sequence = str(record.seq).upper()
+    sequence_id = record.id
+
+    # Fragment the sequence
+    fragment_length = config.bio.fragment_length
+    stride = fragment_length  # No overlap for now
+    min_length = config.bio.min_sequence_length
+
+    fragments = []
+    for start in range(0, len(full_sequence), stride):
+        fragment_seq = full_sequence[start:start + fragment_length]
+        if len(fragment_seq) >= min_length:
+            fragments.append((start, fragment_seq))
+
+    if not fragments:
+        raise ValueError(f"Sequence too short to fragment (length={len(full_sequence)}, min={min_length})")
+
+    # Load models
+    harmony_tokenizer = HarmonyTokenizer(config.music)
+    melody_tokenizer = MelodyTokenizer(config.music)
+    harmony_model, melody_model = _instantiate_models(config, checkpoint)
+    device = _resolve_device(device_name)
+    harmony_model = harmony_model.to(device)
+    melody_model = melody_model.to(device)
+
+    # Generate music for each fragment
+    segment_scores = []
+    fragment_metadata = []
+
+    for frag_idx, (start_pos, fragment_seq) in enumerate(fragments):
+        # Encode fragment
+        bio_result = encoder.encode_sequence(
+            sequence=fragment_seq,
+            sequence_id=f"{sequence_id}::frag{frag_idx:03d}"
+        )
+
+        calibrated_profile = _apply_calibration(bio_result.control_profile, calibration)
+        mode_name = _mode_from_profile(calibrated_profile)
+        bio_tensor = torch.tensor(bio_result.vector, dtype=torch.float32, device=device)
+
+        # Fixed number of bars per fragment
+        num_bars = bars_per_fragment
+        harmony_max_tokens = num_bars * 8
+        melody_max_tokens = num_bars * 48
+        melody_min_tokens = num_bars * 16
+
+        # Generate harmony
+        harmony_prefix = [
+            harmony_tokenizer.bos_token_id,
+            *harmony_tokenizer.control_tokens(calibrated_profile, bio_result.tonic_pc_hint, mode_name),
+            harmony_tokenizer.sep_token_id,
+        ]
+        generated_harmony = harmony_model.generate(
+            bio_vector=bio_tensor,
+            prefix_token_ids=harmony_prefix,
+            max_new_tokens=harmony_max_tokens,
+            temperature=config.generation.harmony_temperature,
+            top_k=config.generation.harmony_top_k,
+            top_p=config.generation.harmony_top_p,
+            stop_token_ids=[harmony_tokenizer.eos_token_id],
+        )
+        harmony_bars = harmony_tokenizer.decode_progression(generated_harmony.tolist(), num_bars)
+
+        # Generate melody
+        melody_prefix = [
+            melody_tokenizer.bos_token_id,
+            *melody_tokenizer.control_tokens(calibrated_profile, bio_result.tonic_pc_hint, mode_name),
+            *(melody_tokenizer.token_to_id[token] for token in melody_tokenizer.harmony_prefix_tokens(harmony_bars)),
+            melody_tokenizer.sep_token_id,
+        ]
+        generated_melody = melody_model.generate(
+            bio_vector=bio_tensor,
+            prefix_token_ids=melody_prefix,
+            max_new_tokens=melody_max_tokens,
+            temperature=config.generation.melody_temperature,
+            top_k=config.generation.melody_top_k,
+            top_p=config.generation.melody_top_p,
+            min_new_tokens=melody_min_tokens,
+            stop_token_ids=[melody_tokenizer.eos_token_id],
+        )
+        decoded_melody = melody_tokenizer.decode_melody(generated_melody.tolist(), harmony_bars, bio_result.tonic_pc_hint)
+
+        # Use average tempo across all fragments
+        tempo_bpm = 48.0 + float(calibrated_profile[0]) * 120.0
+
+        # Render segment
+        segment_score = render_harmony_and_melody_to_score(harmony_bars, decoded_melody, tempo_bpm, config.music)
+        segment_scores.append(segment_score)
+
+        fragment_metadata.append({
+            "fragment_index": frag_idx,
+            "start_position": start_pos,
+            "fragment_length": len(fragment_seq),
+            "num_bars": num_bars,
+            "tempo_bpm": tempo_bpm,
+            "harmony_bars": len(harmony_bars),
+            "melody_notes": len(decoded_melody),
+        })
+
+    # Concatenate all segments
+    final_score = music21.stream.Score()
+
+    # Use tempo from first fragment
+    first_tempo = 48.0 + float(_apply_calibration(
+        encoder.encode_sequence(sequence=fragments[0][1], sequence_id=sequence_id).control_profile,
+        calibration
+    )[0]) * 120.0
+    final_score.insert(0, music21.tempo.MetronomeMark(number=first_tempo))
+
+    # Create parts for harmony and melody
+    harmony_part = music21.stream.Part()
+    melody_part = music21.stream.Part()
+
+    harmony_part.insert(0, music21.instrument.Piano())
+    melody_part.insert(0, music21.instrument.Piano())
+
+    # Concatenate all notes from segments
+    # Calculate offset for each segment
+    current_offset = 0.0
+    for segment_score in segment_scores:
+        if len(segment_score.parts) >= 1:
+            # Copy harmony notes with offset
+            for element in segment_score.parts[0].flatten().notesAndRests:
+                new_element = element
+                new_element.offset = element.offset + current_offset
+                harmony_part.insert(new_element.offset, new_element)
+
+        if len(segment_score.parts) >= 2:
+            # Copy melody notes with offset
+            for element in segment_score.parts[1].flatten().notesAndRests:
+                new_element = element
+                new_element.offset = element.offset + current_offset
+                melody_part.insert(new_element.offset, new_element)
+
+        # Update offset for next segment (4 bars = 16 quarter notes)
+        current_offset += bars_per_fragment * 4.0
+
+    final_score.append(harmony_part)
+    final_score.append(melody_part)
+
+    # Save MIDI
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    final_score.write("midi", fp=str(output))
+
+    # Metadata
+    total_bars = len(fragments) * bars_per_fragment
+    total_melody_notes = sum(fm["melody_notes"] for fm in fragment_metadata)
+
+    metadata = {
+        "sequence_id": sequence_id,
+        "full_sequence_length": len(full_sequence),
+        "fragment_length": fragment_length,
+        "stride": stride,
+        "num_fragments": len(fragments),
+        "bars_per_fragment": bars_per_fragment,
+        "total_bars": total_bars,
+        "total_melody_notes": total_melody_notes,
+        "output_midi": str(output),
+        "checkpoint_path": checkpoint_path,
+        "config_source": config_source,
+        "device": str(device),
+        "fragments": fragment_metadata,
+    }
+
+    if metadata_output:
+        meta_path = Path(metadata_output)
+        meta_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(meta_path, "w", encoding="utf-8") as handle:
+            json.dump(metadata, handle, indent=2)
+
+    return metadata
+

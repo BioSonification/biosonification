@@ -2,6 +2,8 @@
 
 Проект генерирует символическую музыку по биологическим последовательностям. Основной контур реализован как иерархический пайплайн `Bio -> Harmony -> Melody`: сначала из FASTA извлекаются biologically informed признаки, затем по ним генерируется аккордовая сетка по тактам, а после этого отдельная модель строит монофоническую мелодию поверх этой гармонии.
 
+**Ключевая особенность:** Для длинных последовательностей используется **фрагментированная генерация** — входная последовательность разбивается на фрагменты обучающей длины (1800 bp), для каждого генерируется короткий музыкальный сегмент (4 или 8 тактов), затем все сегменты склеиваются в одну длинную композицию. Это обеспечивает стабильное качество независимо от длины входной последовательности.
+
 ## Что делает текущий пайплайн
 
 ```mermaid
@@ -24,6 +26,31 @@ flowchart TD
     K --> L
     L --> M["2-track MIDI: harmony + melody"]
 ```
+
+## Доступные модели
+
+Проект включает две обученные модели с разными характеристиками:
+
+### 4-тактовая модель (рекомендуется)
+- **Путь:** `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt`
+- **Конфиг:** `configs/pipeline_v2_medium_rtx2060_fast.json`
+- **Архитектура:** 384D, 6 heads, 6 layers
+- **Обучающие данные:** 4-тактовые сегменты из POP909
+- **Validation loss:** Harmony 0.145, Melody 0.157 (лучше!)
+- **Использование:** Фрагментированная генерация с `bars_per_fragment=4`
+
+### 8-тактовая модель
+- **Путь:** `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt`
+- **Конфиг:** `configs/pipeline_v2_medium_rtx2060_long.json`
+- **Архитектура:** 384D, 6 heads, 6 layers
+- **Обучающие данные:** 8-тактовые сегменты из POP909
+- **Validation loss:** Harmony 0.179, Melody 0.215
+- **Использование:** Фрагментированная генерация с `bars_per_fragment=8`
+
+**Почему 4-тактовая модель лучше:**
+- Меньший validation loss → лучшее качество генерации
+- Более короткие сегменты → больше разнообразия при фрагментированной генерации
+- Лучше обобщается на новые данные
 
 ## Архитектурные свойства
 
@@ -60,8 +87,14 @@ flowchart TD
 
 CLI:
 
-- `train_bio_music_v2.py`
-- `generate_from_fasta_v2.py`
+- `train_bio_music_v2.py` — обучение моделей
+- `generate_from_fasta_v2.py` — генерация из FASTA (baseline, использует только первый фрагмент)
+- `generate_from_fasta_v2_fragmented.py` — **фрагментированная генерация** (рекомендуется для длинных последовательностей)
+
+Веб-интерфейс:
+
+- `web/app.py` — Flask-приложение с веб-интерфейсом
+- Автоматически использует фрагментированную генерацию с 4-тактовой моделью
 
 ## Быстрый старт
 
@@ -86,51 +119,67 @@ if torch.cuda.is_available():
 '@ | .\.venv\Scripts\python.exe -
 ```
 
-Обучение:
+Обучение (4-тактовая модель, рекомендуется):
 
 ```powershell
-.\.venv\Scripts\python.exe train_bio_music_v2.py --config configs\pipeline_v2_small.json
+.\.venv\Scripts\python.exe train_bio_music_v2.py --config configs\pipeline_v2_medium_rtx2060_fast.json
 ```
 
-Генерация из FASTA:
+Генерация из FASTA (фрагментированная, рекомендуется):
 
 ```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py --config configs\pipeline_v2_small.json --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output results\v2_generation\structured_from_fasta.mid --metadata-output results\v2_generation\structured_from_fasta.json
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
+  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
+  --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
+  --output results\generated_music\ecoli_fragmented.mid `
+  --bars-per-fragment 4 `
+  --metadata-output results\generated_music\ecoli_fragmented.json
+```
+
+Запуск веб-интерфейса:
+
+```powershell
+.\.venv\Scripts\python.exe -m web.app
+# Откройте http://localhost:5001
 ```
 
 ## Что проверять после запуска
 
-После обучения:
+После обучения 4-тактовой модели:
 
-- `results/v2_music21_rtx2060/checkpoints/structured_pipeline.pt`
-- `results/v2_music21_rtx2060/checkpoints/harmony_best.pt`
-- `results/v2_music21_rtx2060/checkpoints/melody_best.pt`
-- `results/v2_music21_rtx2060/metrics.json`
-- `results/v2_music21_rtx2060/smoke/structured_sample.mid`
+- `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt`
+- `results/v2_medium_rtx2060_fast/checkpoints/harmony_best.pt`
+- `results/v2_medium_rtx2060_fast/checkpoints/melody_best.pt`
+- `results/v2_medium_rtx2060_fast/metrics.json`
+- `results/v2_medium_rtx2060_fast/smoke/structured_sample.mid`
 
-После генерации:
+После фрагментированной генерации:
 
-- `results/v2_generation/structured_from_fasta.mid`
-- `results/v2_generation/structured_from_fasta.json`
+- `results/generated_music/ecoli_fragmented.mid` — MIDI файл с гармонией и мелодией
+- `results/generated_music/ecoli_fragmented.json` — метаданные:
+  - `num_fragments` — количество фрагментов
+  - `total_bars` — общее количество тактов
+  - `total_melody_notes` — общее количество нот мелодии
+  - `fragments` — детали по каждому фрагменту (темп, количество нот)
 
 Быстрая техническая проверка:
 
 ```powershell
 @'
 from music21 import converter
-score = converter.parse("results/v2_generation/structured_from_fasta.mid")
+score = converter.parse("results/generated_music/ecoli_fragmented.mid")
 print("highestTime:", float(score.highestTime))
 for i, part in enumerate(score.parts):
     print("part", i, "notes", len(list(part.flatten().notes)))
 '@ | .\.venv\Scripts\python.exe -
 ```
 
-Нормальный результат для текущего structured-пайплайна:
+Ожидаемый результат для фрагментированной генерации:
 
-- `score.highestTime` совпадает с длиной гармонической сетки
-- 2 партии: гармония и мелодия
-- в гармонии лежат аккорды по тактам
-- мелодия остаётся монофонической
+- `score.highestTime` = `num_fragments * bars_per_fragment * 4.0` (quarter notes)
+- 2 партии: гармония (аккорды) и мелодия (монофоническая линия)
+- Количество нот мелодии соответствует `total_melody_notes` из метаданных
+- Для длинных последовательностей (>1800 bp) генерируется несколько фрагментов
 
 ## Оценка результата
 
@@ -188,3 +237,25 @@ Fallback-корпус `music21` помечается как demo/smoke-test ис
 - Для по-настоящему богатой музыки лучше заменить fallback `music21` corpus на более крупный внешний полифонический корпус.
 - Биологические признаки используются как conditioning signals. Проект не доказывает причинную связь между генами и музыкальными структурами.
 - Runtime-артефакты (`results/`, `outputs/`, `tmp/`, `web/output/`) не должны храниться в git; воспроизводимые результаты нужно описывать через конфиги, метрики и manifest-файлы.
+
+## Эволюция подхода
+
+### Baseline (v1)
+- Генерация одной длинной композиции за раз
+- Адаптивная длина: `num_bars = max(8, min(32, sequence_length // 200))`
+- **Проблема:** Для длинных последовательностей (>1800 bp) модель выходит за пределы обучающего распределения → качество падает, гармония повторяется, мелодия становится монотонной
+
+### Фрагментированная генерация (v2, текущая)
+- Входная последовательность разбивается на фрагменты по 1800 bp (обучающая длина)
+- Для каждого фрагмента генерируется короткий сегмент (4 или 8 тактов)
+- Все сегменты склеиваются в одну композицию
+- **Преимущества:**
+  - Каждый фрагмент генерируется в пределах обучающего распределения → стабильное качество
+  - Длинные последовательности → длинные композиции без потери качества
+  - Больше разнообразия (каждый фрагмент имеет свой био-вектор)
+- **Результаты:** Для 10000 bp последовательности генерируется 24 такта (6 фрагментов × 4 такта) вместо 9 тактов в baseline
+
+### Выбор модели
+- **8-тактовая модель:** Обучена на 8-тактовых сегментах, val_loss выше
+- **4-тактовая модель (выбрана):** Обучена на 4-тактовых сегментах, val_loss ниже на 19% (harmony) и 27% (melody)
+- Меньшие сегменты → лучшее обобщение → выше качество

@@ -1,57 +1,181 @@
 # Руководство по генерации музыки из геномов
 
 **Дата создания:** 2026-05-07  
-**Статус:** Модель обучена и готова к генерации
+**Последнее обновление:** 2026-05-08  
+**Статус:** Фрагментированная генерация с 4-тактовой моделью
 
 ---
 
 ## Быстрый старт
 
-### Генерация из одного генома
+### Фрагментированная генерация (рекомендуется)
 
 ```powershell
-# Активация виртуального окружения и генерация
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+# Генерация с автоматическим разбиением на фрагменты
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
   --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
   --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
-  --output results\generated_music\my_output.mid `
-  --record-index 0 `
-  --config configs\pipeline_v2_medium_rtx2060_fast.json
+  --output results\generated_music\ecoli_fragmented.mid `
+  --bars-per-fragment 4 `
+  --metadata-output results\generated_music\ecoli_fragmented.json
+```
+
+**Преимущества:**
+- ✅ Стабильное качество для любой длины последовательности
+- ✅ Длинные последовательности → длинные композиции
+- ✅ Больше разнообразия (каждый фрагмент имеет свой био-вектор)
+
+### Baseline генерация (для сравнения)
+
+```powershell
+# Генерация без фрагментации (использует только первый фрагмент)
+.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+  --checkpoint results\v2_medium_rtx2060_long\checkpoints\structured_pipeline.pt `
+  --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
+  --output results\generated_music\ecoli_baseline.mid `
+  --config configs\pipeline_v2_medium_rtx2060_long.json
 ```
 
 **Важно:** Всегда используйте `.\.venv\Scripts\python.exe` для запуска, иначе будет ошибка `ModuleNotFoundError: No module named 'torch'`
 
 ---
 
-## Параметры генерации
+## Сравнение подходов
+
+### Baseline (generate_from_fasta_v2.py)
+
+**Как работает:**
+- Использует только первый фрагмент последовательности (1800 bp)
+- Генерирует одну композицию за раз
+- Адаптивная длина: `num_bars = max(8, min(32, sequence_length // 200))`
+
+**Проблемы:**
+- ❌ Для длинных последовательностей (>1800 bp) модель выходит за пределы обучающего распределения
+- ❌ Качество падает: гармония повторяется, мелодия становится монотонной
+- ❌ Не использует всю информацию из длинной последовательности
+
+**Пример результата (10000 bp):**
+- Использует: 1800 bp (первый фрагмент)
+- Генерирует: 9 тактов, 63 ноты
+- Качество: низкое для длинных композиций
+
+### Фрагментированная генерация (generate_from_fasta_v2_fragmented.py)
+
+**Как работает:**
+1. Разбивает входную последовательность на фрагменты по 1800 bp
+2. Для каждого фрагмента генерирует короткий сегмент (4 или 8 тактов)
+3. Склеивает все сегменты в одну композицию
+
+**Преимущества:**
+- ✅ Каждый фрагмент генерируется в пределах обучающего распределения → стабильное качество
+- ✅ Использует всю последовательность
+- ✅ Больше разнообразия (каждый фрагмент имеет свой био-вектор и темп)
+
+**Пример результата (10000 bp):**
+- Использует: 10000 bp (6 фрагментов)
+- Генерирует: 24 такта, 166 нот
+- Качество: стабильное на протяжении всей композиции
+
+---
+
+## Параметры фрагментированной генерации
 
 ### Основные параметры
 
-| Параметр | Описание | Пример |
-|----------|----------|--------|
-| `--checkpoint` | Путь к обученной модели | `results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt` |
-| `--fasta` | Путь к FASTA файлу или директории | `data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna` |
-| `--output` | Путь для сохранения MIDI | `results\generated_music\output.mid` |
+| Параметр | Описание | Значение по умолчанию |
+|----------|----------|----------------------|
+| `--checkpoint` | Путь к обученной модели | Обязательный |
+| `--fasta` | Путь к FASTA файлу | Обязательный |
+| `--output` | Путь для сохранения MIDI | Обязательный |
+| `--bars-per-fragment` | Количество тактов на фрагмент (4 или 8) | `4` (рекомендуется) |
 | `--record-index` | Индекс записи в FASTA (0-based) | `0` |
-| `--config` | Конфигурация (опционально) | `configs\pipeline_v2_medium_rtx2060_fast.json` |
-| `--device` | Устройство для генерации | `auto` (по умолчанию), `cuda`, `cpu` |
+| `--config` | Конфигурация (опционально) | Из checkpoint |
+| `--metadata-output` | Путь для сохранения метаданных JSON | Опционально |
+| `--device` | Устройство для генерации | `auto` |
 
-### Как работает адаптивная длительность
+### Выбор bars-per-fragment
 
-**Формула:** `num_bars = max(8, min(32, sequence_length // 200))`
+**4 такта (рекомендуется):**
+- Модель: `v2_medium_rtx2060_fast`
+- Validation loss: Harmony 0.145, Melody 0.157 (лучше!)
+- Больше фрагментов → больше разнообразия
+- Лучшее качество генерации
 
-| Длина последовательности | Количество тактов | Примерная длительность |
-|--------------------------|-------------------|------------------------|
-| 1600 bp | 8 тактов | ~16 секунд |
-| 1800 bp | 9 тактов | ~18 секунд |
-| 3000 bp | 15 тактов | ~30 секунд |
-| 6400 bp | 32 такта | ~64 секунды |
+**8 тактов:**
+- Модель: `v2_medium_rtx2060_long`
+- Validation loss: Harmony 0.179, Melody 0.215
+- Меньше фрагментов → меньше переходов
+- Более длинные сегменты
 
-**Токены для мелодии:**
-- `melody_max_tokens = num_bars * 48`
-- `melody_min_tokens = num_bars * 16`
+### Как работает фрагментация
 
-Это гарантирует, что мелодия заполняет все сгенерированные аккорды без "висячих" аккордов в конце.
+```
+Длинная последовательность (10000 bp)
+↓
+Разбить на фрагменты по 1800 bp (stride 1800)
+↓
+Fragment 1 (0-1800)    → Bio vector 1 → Generate 4 bars → MIDI segment 1
+Fragment 2 (1800-3600) → Bio vector 2 → Generate 4 bars → MIDI segment 2
+Fragment 3 (3600-5400) → Bio vector 3 → Generate 4 bars → MIDI segment 3
+Fragment 4 (5400-7200) → Bio vector 4 → Generate 4 bars → MIDI segment 4
+Fragment 5 (7200-9000) → Bio vector 5 → Generate 4 bars → MIDI segment 5
+Fragment 6 (9000-10000) → Bio vector 6 → Generate 4 bars → MIDI segment 6
+↓
+Concatenate all MIDI segments → Final MIDI (24 bars)
+```
+
+### Расчет длины композиции
+
+| Длина последовательности | Фрагментов | Тактов (4-bar) | Тактов (8-bar) | Примерная длительность |
+|--------------------------|------------|----------------|----------------|------------------------|
+| 1800 bp | 1 | 4 | 8 | 8-16 секунд |
+| 3600 bp | 2 | 8 | 16 | 16-32 секунды |
+| 10000 bp | 6 | 24 | 48 | 48-96 секунд |
+| 20000 bp | 12 | 48 | 96 | 96-192 секунды |
+
+---
+
+## Доступные модели
+
+### 4-тактовая модель (рекомендуется)
+
+**Checkpoint:** `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt`  
+**Config:** `configs/pipeline_v2_medium_rtx2060_fast.json`
+
+**Характеристики:**
+- Архитектура: 384D, 6 heads, 6 layers
+- Обучающие данные: 4-тактовые сегменты из POP909
+- Validation loss: Harmony 0.145, Melody 0.157
+- Время обучения: 52 минуты на RTX 2060
+
+**Использование:**
+```powershell
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
+  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
+  --fasta your_sequence.fna `
+  --output output.mid `
+  --bars-per-fragment 4
+```
+
+### 8-тактовая модель
+
+**Checkpoint:** `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt`  
+**Config:** `configs/pipeline_v2_medium_rtx2060_long.json`
+
+**Характеристики:**
+- Архитектура: 384D, 6 heads, 6 layers
+- Обучающие данные: 8-тактовые сегменты из POP909
+- Validation loss: Harmony 0.179, Melody 0.215
+- Время обучения: ~60 минут на RTX 2060
+
+**Использование:**
+```powershell
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
+  --checkpoint results\v2_medium_rtx2060_long\checkpoints\structured_pipeline.pt `
+  --fasta your_sequence.fna `
+  --output output.mid `
+  --bars-per-fragment 8
+```
 
 ---
 
@@ -71,54 +195,94 @@
 
 ## Примеры использования
 
-### 1. Генерация из E. coli (короткая)
+### 1. Короткая последовательность (E. coli, 1800 bp)
 
 ```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
   --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
   --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
-  --output results\generated_music\ecoli.mid `
-  --record-index 0 `
-  --config configs\pipeline_v2_medium_rtx2060_fast.json
+  --output results\generated_music\ecoli_short.mid `
+  --bars-per-fragment 4 `
+  --metadata-output results\generated_music\ecoli_short.json
 ```
 
-**Результат:** ~9 тактов, ~36 нот, ~18 секунд
+**Ожидаемый результат:**
+- 1 фрагмент
+- 4 такта
+- ~20 нот мелодии
+- ~8 секунд
 
-### 2. Генерация из Drosophila (длинная)
+### 2. Средняя последовательность (3600 bp)
 
 ```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+# Создать тестовую последовательность
+.\.venv\Scripts\python.exe -c "from Bio import SeqIO; r = list(SeqIO.parse('data/fasta/refseq_genomes/GCF_000005845.2_genomic.fna', 'fasta'))[0]; print(f'>{r.id}_3600bp\n{str(r.seq)[:3600]}')" | Out-File -Encoding utf8 "data\test\ecoli_3600bp.fna"
+
+# Генерация
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
   --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\fasta\refseq_genomes\GCF_000001215.4_genomic.fna `
+  --fasta data\test\ecoli_3600bp.fna `
+  --output results\generated_music\ecoli_medium.mid `
+  --bars-per-fragment 4
+```
+
+**Ожидаемый результат:**
+- 2 фрагмента
+- 8 тактов
+- ~48 нот мелодии
+- ~16 секунд
+
+### 3. Длинная последовательность (Drosophila, 10000 bp)
+
+```powershell
+# Создать тестовую последовательность
+.\.venv\Scripts\python.exe -c "from Bio import SeqIO; r = list(SeqIO.parse('data/fasta/refseq_genomes/GCF_000001215.4_genomic.fna', 'fasta'))[0]; print(f'>{r.id}_10000bp\n{str(r.seq)[:10000]}')" | Out-File -Encoding utf8 "data\test\drosophila_10000bp.fna"
+
+# Генерация
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
+  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
+  --fasta data\test\drosophila_10000bp.fna `
   --output results\generated_music\drosophila_long.mid `
-  --record-index 0 `
-  --config configs\pipeline_long_fragment.json
+  --bars-per-fragment 4
 ```
 
-**Результат:** ~32 такта, ~74 ноты, ~64 секунды
+**Ожидаемый результат:**
+- 6 фрагментов
+- 24 такта
+- ~150-170 нот мелодии
+- ~48 секунд
 
-### 3. Генерация из разных записей одного файла
+### 4. Сравнение baseline vs fragmented
 
 ```powershell
-# Первая хромосома yeast
+# Baseline (только первый фрагмент)
 .\.venv\Scripts\python.exe generate_from_fasta_v2.py `
-  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\fasta\refseq_genomes\GCF_000146045.2_genomic.fna `
-  --output results\generated_music\yeast_chr1.mid `
-  --record-index 0
+  --checkpoint results\v2_medium_rtx2060_long\checkpoints\structured_pipeline.pt `
+  --fasta data\test\drosophila_10000bp.fna `
+  --output results\comparison\drosophila_baseline.mid `
+  --config configs\pipeline_v2_medium_rtx2060_long.json
 
-# Вторая хромосома yeast
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+# Fragmented (все фрагменты)
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
   --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\fasta\refseq_genomes\GCF_000146045.2_genomic.fna `
-  --output results\generated_music\yeast_chr2.mid `
-  --record-index 1
+  --fasta data\test\drosophila_10000bp.fna `
+  --output results\comparison\drosophila_fragmented.mid `
+  --bars-per-fragment 4
 ```
 
-### 4. Batch генерация для всех геномов
+**Сравнение результатов:**
+
+| Метрика | Baseline | Fragmented |
+|---------|----------|------------|
+| Использовано bp | 1800 | 10000 |
+| Фрагментов | 1 | 6 |
+| Тактов | 9 | 24 |
+| Нот мелодии | ~63 | ~166 |
+| Качество | Низкое (повторения) | Стабильное |
+
+### 5. Batch генерация для всех геномов
 
 ```powershell
-# Создать скрипт для генерации всех геномов
 $genomes = @(
     @{name="ecoli"; file="GCF_000005845.2_genomic.fna"; index=0},
     @{name="yeast"; file="GCF_000146045.2_genomic.fna"; index=0},
@@ -129,93 +293,63 @@ $genomes = @(
 
 foreach ($genome in $genomes) {
     Write-Host "Generating $($genome.name)..."
-    .\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+    .\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
       --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
       --fasta "data\fasta\refseq_genomes\$($genome.file)" `
-      --output "results\generated_music\$($genome.name)_adaptive.mid" `
-      --record-index $genome.index `
-      --config configs\pipeline_v2_medium_rtx2060_fast.json
+      --output "results\generated_music\$($genome.name)_fragmented.mid" `
+      --bars-per-fragment 4 `
+      --metadata-output "results\generated_music\$($genome.name)_fragmented.json"
 }
-```
-
----
-
-## Конфигурации
-
-### Стандартная конфигурация (короткие фрагменты)
-
-**Файл:** `configs/pipeline_v2_medium_rtx2060_fast.json`
-
-```json
-{
-  "bio": {
-    "fragment_length": 1800,
-    "fragment_stride": 1800
-  }
-}
-```
-
-**Результат:** 8-9 тактов (~18 секунд)
-
-### Длинные фрагменты
-
-**Файл:** `configs/pipeline_long_fragment.json`
-
-```json
-{
-  "bio": {
-    "fragment_length": 6400,
-    "fragment_stride": 6400
-  }
-}
-```
-
-**Результат:** 32 такта (~64 секунды)
-
-### Создание кастомной конфигурации
-
-```powershell
-# Копировать базовую конфигурацию
-Copy-Item configs\pipeline_v2_medium_rtx2060_fast.json configs\my_config.json
-
-# Отредактировать вручную или через sed
-cat configs\pipeline_v2_medium_rtx2060_fast.json | `
-  sed 's/"fragment_length": 1800/"fragment_length": 3600/' > configs\medium_fragment.json
 ```
 
 ---
 
 ## Метаданные генерации
 
-Каждая генерация создает JSON файл с метаданными:
+Фрагментированная генерация создает подробный JSON файл с метаданными:
 
 ```json
 {
-  "sequence_id": "NC_000913.3::frag000",
-  "sequence_type": "dna",
-  "cleaned_sequence_length": 1800,
-  "translated_protein_length": 488,
-  "tonic_pc_hint": 1,
-  "tempo_bpm": 89.38,
-  "num_bars": 9,
-  "harmony_max_tokens": 72,
-  "melody_max_tokens": 432,
-  "melody_min_tokens": 144,
-  "generated_melody_note_count": 36,
-  "generated_harmony_bars": [...]
+  "sequence_id": "NC_000913.3_3600bp",
+  "full_sequence_length": 3600,
+  "fragment_length": 1800,
+  "stride": 1800,
+  "num_fragments": 2,
+  "bars_per_fragment": 4,
+  "total_bars": 8,
+  "total_melody_notes": 48,
+  "output_midi": "C:\\...\\ecoli_3600_fragmented.mid",
+  "checkpoint_path": "results\\v2_medium_rtx2060_fast\\checkpoints\\structured_pipeline.pt",
+  "config_source": "checkpoint",
+  "device": "cuda",
+  "fragments": [
+    {
+      "fragment_index": 0,
+      "start_position": 0,
+      "fragment_length": 1800,
+      "num_bars": 4,
+      "tempo_bpm": 89.38,
+      "harmony_bars": 4,
+      "melody_notes": 25
+    },
+    {
+      "fragment_index": 1,
+      "start_position": 1800,
+      "fragment_length": 1800,
+      "num_bars": 4,
+      "tempo_bpm": 92.56,
+      "harmony_bars": 4,
+      "melody_notes": 26
+    }
+  ]
 }
 ```
 
-**Сохранение метаданных:**
-
-```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
-  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
-  --output results\generated_music\ecoli.mid `
-  --metadata-output results\generated_music\ecoli_metadata.json `
-  --record-index 0
-```
+**Ключевые поля:**
+- `num_fragments` — количество фрагментов
+- `total_bars` — общее количество тактов
+- `total_melody_notes` — общее количество нот мелодии
+- `fragments` — детали по каждому фрагменту (темп, количество нот)
 
 ---
 
@@ -229,10 +363,10 @@ cat configs\pipeline_v2_medium_rtx2060_fast.json | `
 
 ```powershell
 # ❌ Неправильно
-python generate_from_fasta_v2.py ...
+python generate_from_fasta_v2_fragmented.py ...
 
 # ✅ Правильно
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py ...
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py ...
 ```
 
 ### Ошибка: `IndexError: record_index=X is outside the valid range`
@@ -242,8 +376,7 @@ python generate_from_fasta_v2.py ...
 **Решение:** Проверьте количество записей в FASTA файле
 
 ```powershell
-# Посмотреть количество записей
-.\.venv\Scripts\python.exe -c "from Bio import SeqIO; print(len(list(SeqIO.parse('data/fasta/refseq_genomes/GCF_000005845.2_genomic.fna', 'fasta'))))"
+.\.venv\Scripts\python.exe -c "from Bio import SeqIO; print(len(list(SeqIO.parse('your_file.fna', 'fasta'))))"
 ```
 
 ### Ошибка: `CUDA out of memory`
@@ -253,44 +386,79 @@ python generate_from_fasta_v2.py ...
 **Решение:** Используйте CPU для генерации
 
 ```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
   --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
-  --output results\generated_music\ecoli.mid `
+  --fasta your_sequence.fna `
+  --output output.mid `
   --device cpu
 ```
 
-### Проблема: Harmony повторяется на длинных композициях
+### Ошибка: `Checkpoint/config mismatch`
 
-**Причина:** Модель обучалась на 4-тактовых сегментах
+**Причина:** Несоответствие архитектуры модели и конфига
 
-**Решение:** Это ожидаемое поведение для композиций >8 тактов. Для лучших результатов на длинных композициях нужно переобучить модель на более длинных сегментах.
+**Решение:** Используйте правильный конфиг для модели
+
+```powershell
+# Для 4-тактовой модели
+--config configs\pipeline_v2_medium_rtx2060_fast.json
+
+# Для 8-тактовой модели
+--config configs\pipeline_v2_medium_rtx2060_long.json
+```
+
+### Проблема: MIDI файл пустой (106 байт)
+
+**Причина:** Эта проблема была исправлена в последней версии
+
+**Решение:** Убедитесь, что используете актуальную версию кода
+
+```powershell
+# Проверить размер сгенерированного MIDI
+(Get-Item "output.mid").Length
+# Должно быть >300 байт для коротких последовательностей
+```
 
 ---
 
-## Сгенерированные файлы (2026-05-07)
+## Технические детали
 
-### Адаптивная длительность (9 тактов)
+### Архитектура модели
 
-| Файл | Организм | Такты | Ноты | Темп |
-|------|----------|-------|------|------|
-| `ecoli_adaptive.mid` | E. coli | 9 | 36 | 89.4 BPM |
-| `yeast_adaptive.mid` | Yeast | 9 | 35 | 87.4 BPM |
-| `drosophila_adaptive.mid` | Drosophila | 9 | 28 | 91.1 BPM |
-| `worm_adaptive.mid` | C. elegans | 9 | 36 | 74.1 BPM |
-| `arabidopsis_adaptive.mid` | Arabidopsis | 9 | 34 | 87.4 BPM |
+- **Bio encoder:** k-mer features + protein features + ESM embeddings → 256D embedding
+- **Harmony model:** Bio-conditioned transformer (384D, 6 heads, 6 layers)
+- **Melody model:** Bio-conditioned transformer (384D, 6 heads, 6 layers)
 
-### Длинная композиция (32 такта)
+### Обучение 4-тактовой модели
 
-| Файл | Организм | Такты | Ноты | Темп |
-|------|----------|-------|------|------|
-| `drosophila_very_long.mid` | Drosophila | 32 | 74 | 88.4 BPM |
+- **Датасет:** 3,746 bio фрагментов × 15,226 music сегментов (4 bars)
+- **Время обучения:** 52 минуты на RTX 2060
+- **Harmony loss:** 0.145 (val), 0.139 (test)
+- **Melody loss:** 0.157 (val), 0.165 (test)
+
+### Процесс фрагментированной генерации
+
+1. **Фрагментация:** Разбить последовательность на фрагменты по 1800 bp
+2. **Bio encoding:** Для каждого фрагмента: FASTA → k-mers + protein → 256D vector
+3. **Harmony generation:** Bio vector → chord progression (8 tokens/bar)
+4. **Melody generation:** Bio vector + harmony → melody notes (48 tokens/bar)
+5. **Concatenation:** Склеить все MIDI сегменты с правильным смещением по времени
+6. **Rendering:** Финальный Score → MIDI file
 
 ---
 
 ## Следующие шаги
 
-### 1. Evaluation
+### 1. Веб-интерфейс
+
+Запустить веб-интерфейс с фрагментированной генерацией:
+
+```powershell
+.\.venv\Scripts\python.exe -m web.app
+# Откройте http://localhost:5001
+```
+
+### 2. Evaluation
 
 Оценить качество сгенерированной музыки:
 
@@ -302,23 +470,6 @@ python generate_from_fasta_v2.py ...
   --max-records 20
 ```
 
-### 2. Обучение на полном датасете
-
-Для еще лучших результатов:
-
-```powershell
-# Предобработка с большим количеством фрагментов
-.\.venv\Scripts\python.exe tools\preprocess_bio.py `
-  --config configs\pipeline_v2_medium_rtx2060.json `
-  --output data\cache\bio_fragments_medium.pkl
-
-# Обучение (~12-18 часов)
-.\.venv\Scripts\python.exe train_bio_music_v2.py `
-  --config configs\pipeline_v2_medium_rtx2060.json `
-  --bio-cache data\cache\bio_fragments_medium.pkl `
-  --music-cache data\cache\music_segments_pop909.pkl
-```
-
 ### 3. Генерация для всех хромосом
 
 Сгенерировать музыку для каждой хромосомы отдельно:
@@ -326,39 +477,16 @@ python generate_from_fasta_v2.py ...
 ```powershell
 # Пример для yeast (17 хромосом)
 for ($i=0; $i -lt 17; $i++) {
-    .\.venv\Scripts\python.exe generate_from_fasta_v2.py `
+    .\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
       --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
       --fasta data\fasta\refseq_genomes\GCF_000146045.2_genomic.fna `
       --output "results\generated_music\yeast_chr$i.mid" `
-      --record-index $i
+      --record-index $i `
+      --bars-per-fragment 4
 }
 ```
 
 ---
 
-## Технические детали
-
-### Архитектура модели
-
-- **Bio encoder:** k-mer features + protein features → 256D embedding
-- **Harmony model:** Bio-conditioned transformer (384D, 6 heads, 6 layers)
-- **Melody model:** Bio-conditioned transformer (384D, 6 heads, 6 layers)
-
-### Обучение
-
-- **Датасет:** 3,746 bio фрагментов × 25,940 music сегментов = 18,730 пар
-- **Время обучения:** 52 минуты на RTX 2060
-- **Harmony loss:** 0.145 (val), 0.139 (test)
-- **Melody loss:** 0.157 (val), 0.165 (test)
-
-### Генерация
-
-1. **Bio encoding:** FASTA → k-mers + protein → 256D vector
-2. **Harmony generation:** Bio vector → chord progression (8 tokens/bar)
-3. **Melody generation:** Bio vector + harmony → melody notes (48 tokens/bar)
-4. **Rendering:** Tokens → MIDI file
-
----
-
 **Автор:** Claude Code  
-**Последнее обновление:** 2026-05-07 04:00 UTC
+**Последнее обновление:** 2026-05-08

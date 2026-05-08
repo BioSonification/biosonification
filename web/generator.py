@@ -10,7 +10,7 @@ from typing import Dict, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
-from bio_music_pipeline.v2 import generate_structured_music_from_fasta
+from bio_music_pipeline.v2 import generate_structured_music_from_fasta_fragmented
 
 
 class FASTAValidationError(Exception):
@@ -47,7 +47,8 @@ class BioMusicGenerator:
         env_config = os.getenv("BIOSONIFICATION_CONFIG_PATH")
         if env_config:
             return Path(env_config).expanduser()
-        return PROJECT_ROOT / "configs" / "pipeline_v2_small.json"
+        # Use config matching the 4-bar model
+        return PROJECT_ROOT / "configs" / "pipeline_v2_medium_rtx2060_fast.json"
 
     @staticmethod
     def _resolve_default_checkpoint_path() -> Path:
@@ -55,9 +56,15 @@ class BioMusicGenerator:
         if env_checkpoint:
             return Path(env_checkpoint).expanduser()
 
-        primary = PROJECT_ROOT / "results" / "v2_music21_rtx2060" / "checkpoints" / "structured_pipeline.pt"
+        # Prefer 4-bar model (better validation loss)
+        primary = PROJECT_ROOT / "results" / "v2_medium_rtx2060_fast" / "checkpoints" / "structured_pipeline.pt"
         if primary.exists():
             return primary
+
+        # Fallback to 8-bar model
+        fallback = PROJECT_ROOT / "results" / "v2_medium_rtx2060_long" / "checkpoints" / "structured_pipeline.pt"
+        if fallback.exists():
+            return fallback
 
         candidates = list((PROJECT_ROOT / "results").glob("*/checkpoints/structured_pipeline.pt"))
         if candidates:
@@ -150,18 +157,30 @@ class BioMusicGenerator:
 
         midi_path = midi_dir / f"{session_id}.mid"
         metadata_path = metadata_dir / f"{session_id}.json"
-        metadata = generate_structured_music_from_fasta(
+
+        # Use fragmented generation for better quality on long sequences
+        metadata = generate_structured_music_from_fasta_fragmented(
             fasta_path=str(fasta_path),
             checkpoint_path=str(self.checkpoint_path),
             output_path=str(midi_path),
+            bars_per_fragment=4,  # Use 4-bar fragments for best quality
             config_path=str(self.config_path),
             metadata_output=str(metadata_path),
             device_name=self.device,
         )
 
         tonic_names = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
-        tonic = tonic_names[int(metadata["tonic_pc_hint"]) % 12]
-        mode = "major" if metadata["calibrated_profile"][5] >= 0.5 else "minor"
+
+        # Extract tonic and mode from first fragment
+        first_fragment = metadata.get("fragments", [{}])[0]
+        calibrated_profile = first_fragment.get("calibrated_profile", [0.5] * 6)
+        tonic_pc = metadata.get("tonic_pc_hint", 0)
+        tonic = tonic_names[int(tonic_pc) % 12]
+        mode = "major" if calibrated_profile[5] >= 0.5 else "minor"
+
+        # Calculate average tempo across fragments
+        fragments = metadata.get("fragments", [])
+        avg_tempo = sum(f.get("tempo_bpm", 90) for f in fragments) / len(fragments) if fragments else 90.0
 
         return {
             "session_id": session_id,
@@ -172,12 +191,13 @@ class BioMusicGenerator:
             "sequence_length": len(sequence),
             "structured_metadata": metadata,
             "musical_params": {
-                "tempo": float(metadata["tempo_bpm"]),
+                "tempo": float(avg_tempo),
                 "key": f"{tonic} {mode}",
-                "sequence_type": metadata["sequence_type"],
-                "harmony_bars": len(metadata["generated_harmony_bars"]),
-                "melody_notes": int(metadata["generated_melody_note_count"]),
+                "sequence_type": metadata.get("sequence_type", "dna"),
+                "harmony_bars": metadata.get("total_bars", 0),
+                "melody_notes": metadata.get("total_melody_notes", 0),
                 "device": metadata.get("device", self.device),
+                "num_fragments": metadata.get("num_fragments", 1),
             },
         }
 
