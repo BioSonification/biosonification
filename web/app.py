@@ -273,6 +273,65 @@ def survey_results():
     return jsonify(stats)
 
 
+@app.route('/api/examples')
+def get_examples():
+    """Get list of example compositions."""
+    from .examples_data import EXAMPLES
+    return jsonify({'examples': EXAMPLES})
+
+
+@app.route('/api/examples/<example_id>/midi')
+def download_example_midi(example_id):
+    """Download example MIDI file."""
+    from .examples_data import EXAMPLES
+
+    example = next((ex for ex in EXAMPLES if ex['id'] == example_id), None)
+    if not example:
+        return jsonify({'error': 'Example not found'}), 404
+
+    midi_path = PROJECT_ROOT / "web" / "static" / "examples" / "midi" / example['midi_filename']
+    if not midi_path.exists():
+        return jsonify({'error': 'MIDI file not found'}), 404
+
+    return send_file(
+        str(midi_path),
+        mimetype='audio/midi',
+        as_attachment=True,
+        download_name=example['midi_filename']
+    )
+
+
+@app.route('/api/examples/<example_id>/audio')
+def stream_example_audio(example_id):
+    """Stream example audio (WAV)."""
+    from .examples_data import EXAMPLES
+
+    example = next((ex for ex in EXAMPLES if ex['id'] == example_id), None)
+    if not example:
+        return jsonify({'error': 'Example not found'}), 404
+
+    audio_dir = PROJECT_ROOT / "web" / "static" / "examples" / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+
+    wav_filename = example['midi_filename'].replace('.mid', '.wav')
+    wav_path = audio_dir / wav_filename
+
+    # Convert MIDI to WAV if not exists
+    if not wav_path.exists():
+        midi_path = PROJECT_ROOT / "web" / "static" / "examples" / "midi" / example['midi_filename']
+        if not midi_path.exists():
+            return jsonify({'error': 'MIDI file not found'}), 404
+
+        if not midi_to_wav(str(midi_path), str(wav_path)):
+            return jsonify({'error': 'Audio conversion failed. Install fluidsynth or timidity.'}), 500
+
+    return send_file(
+        str(wav_path),
+        mimetype='audio/wav',
+        as_attachment=False
+    )
+
+
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({

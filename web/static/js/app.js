@@ -5,6 +5,10 @@
 
 // DOM Elements
 const elements = {
+    // Navigation
+    navBtns: document.querySelectorAll('.nav-btn'),
+    pages: document.querySelectorAll('.page-content'),
+
     // Tabs
     tabBtns: document.querySelectorAll('.tab-btn'),
     tabContents: document.querySelectorAll('.tab-content'),
@@ -47,6 +51,32 @@ const elements = {
 
 // State
 let selectedFile = null;
+
+// ============================================
+// Navigation
+// ============================================
+
+elements.navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const pageId = btn.dataset.page;
+
+        // Update buttons
+        elements.navBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update pages
+        elements.pages.forEach(page => page.classList.remove('active'));
+        document.getElementById(`${pageId}-page`).classList.add('active');
+
+        // Load examples when switching to examples page
+        if (pageId === 'examples') {
+            const examplesGrid = document.getElementById('examples-grid');
+            if (examplesGrid.children.length === 1 && examplesGrid.children[0].classList.contains('loading-examples')) {
+                loadExamples();
+            }
+        }
+    });
+});
 
 // ============================================
 // Tab Switching
@@ -281,6 +311,116 @@ async function checkStatus() {
 
 // Run status check
 checkStatus();
+
+// ============================================
+// Examples Gallery
+// ============================================
+
+async function loadExamples() {
+    try {
+        const response = await fetch('/api/examples');
+        const data = await response.json();
+
+        if (data.examples && data.examples.length > 0) {
+            renderExamples(data.examples);
+        } else {
+            showExamplesError('No examples available');
+        }
+    } catch (error) {
+        console.error('Failed to load examples:', error);
+        showExamplesError('Failed to load examples');
+    }
+}
+
+async function renderExamples(examples) {
+    const grid = document.getElementById('examples-grid');
+    grid.innerHTML = '';
+
+    for (const example of examples) {
+        const card = await createExampleCard(example);
+        grid.appendChild(card);
+    }
+}
+
+async function createExampleCard(example) {
+    const card = document.createElement('div');
+    card.className = 'example-card';
+
+    const audioUrl = `/api/examples/${example.id}/audio`;
+    const midiUrl = `/api/examples/${example.id}/midi`;
+
+    // Check if audio is available
+    let audioAvailable = false;
+    try {
+        const response = await fetch(audioUrl, { method: 'HEAD' });
+        audioAvailable = response.ok;
+    } catch (error) {
+        audioAvailable = false;
+    }
+
+    const audioPlayerHTML = audioAvailable
+        ? `<div class="example-audio-player">
+            <audio controls preload="none">
+                <source src="${audioUrl}" type="audio/wav">
+                Your browser does not support the audio element.
+            </audio>
+        </div>`
+        : `<div class="audio-unavailable-example">
+            <p>Audio playback requires fluidsynth or timidity</p>
+        </div>`;
+
+    card.innerHTML = `
+        <div class="example-header">
+            <div class="organism-icon">${example.icon}</div>
+            <div class="organism-info">
+                <div class="organism-name">${example.organism}</div>
+                <div class="scientific-name">${example.scientific_name}</div>
+            </div>
+        </div>
+
+        <p class="example-description">${example.description}</p>
+
+        ${audioPlayerHTML}
+
+        <div class="example-metadata">
+            <div class="metadata-item">
+                <span class="metadata-icon">📊</span>
+                <span>${example.bars} bars</span>
+            </div>
+            <div class="metadata-item">
+                <span class="metadata-icon">⏱️</span>
+                <span>~${example.duration_seconds}s</span>
+            </div>
+        </div>
+
+        <div class="example-actions">
+            <a href="${midiUrl}" class="example-download-btn" download>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download MIDI
+            </a>
+        </div>
+    `;
+
+    return card;
+}
+
+function showExamplesError(message) {
+    const grid = document.getElementById('examples-grid');
+    grid.innerHTML = `
+        <div class="audio-unavailable-example">
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+// Load examples on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Don't load examples automatically - they will load when user switches to examples page
+});
 
 // ============================================
 // Demo Data (for testing)

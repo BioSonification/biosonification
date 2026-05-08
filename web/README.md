@@ -5,6 +5,15 @@ Flask interface for the current structured `v2` biosonification pipeline. It gen
 - harmony track: bar-level chord grid
 - melody track: monophonic melody conditioned on the generated harmony
 
+## Features
+
+- **FASTA Input**: Paste sequence or upload file (drag & drop supported)
+- **Music Generation**: Generate structured MIDI from biological sequences
+- **Examples Gallery**: Pre-generated compositions from different organisms
+- **Audio Playback**: Listen to examples directly in browser (requires fluidsynth/timidity)
+- **MIDI Download**: Download generated and example MIDI files
+- **Metadata Display**: View generation parameters (tempo, key, bars, notes)
+
 ## Requirements
 
 Install the project dependencies from the repository root:
@@ -60,6 +69,9 @@ The web form accepts pasted text or FASTA upload. DNA, RNA, and protein-like seq
 - `POST /api/generate` accepts JSON `{ "fasta": "..." }` or multipart `fasta_file`.
 - `GET /api/download/<session_id>/midi` downloads the generated MIDI.
 - `GET /api/download/<session_id>/wav` downloads rendered WAV when an optional synthesizer is available.
+- `GET /api/examples` returns list of example compositions with metadata.
+- `GET /api/examples/<example_id>/midi` downloads example MIDI file.
+- `GET /api/examples/<example_id>/audio` streams example audio (WAV, converts on first request).
 
 The generation response includes structured metadata:
 

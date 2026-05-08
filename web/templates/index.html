@@ -35,225 +35,297 @@
                 </svg>
                 <h1>BioSonification</h1>
             </div>
-            <p class="tagline">Generate structured harmony and melody from biological sequences</p>
+            <p class="tagline">Генерация структурированной музыки из биологических последовательностей</p>
+
+            <!-- Navigation -->
+            <nav class="main-nav">
+                <button class="nav-btn active" data-page="generate">Генерация</button>
+                <button class="nav-btn" data-page="examples">Примеры</button>
+                <button class="nav-btn" data-page="about">О проекте</button>
+            </nav>
         </header>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Input Section -->
-            <section class="input-section card">
-                <h2>Input a Biological Sequence</h2>
-                
-                <!-- Tabs -->
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="paste">Paste Sequence</button>
-                    <button class="tab-btn" data-tab="upload">Upload File</button>
-                </div>
+            <!-- Generate Page -->
+            <div class="page-content active" id="generate-page">
+                <!-- Input Section -->
+                <section class="input-section card">
+                    <h2>Введите биологическую последовательность</h2>
 
-                <!-- Paste Tab -->
-                <div class="tab-content active" id="paste-tab">
-                    <textarea 
-                        id="fasta-input" 
-                        placeholder="Paste your FASTA sequence here...
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="paste">Вставить последовательность</button>
+                        <button class="tab-btn" data-tab="upload">Загрузить файл</button>
+                    </div>
 
-Example:
+                    <!-- Paste Tab -->
+                    <div class="tab-content active" id="paste-tab">
+                        <textarea
+                            id="fasta-input"
+                            placeholder="Вставьте вашу FASTA последовательность здесь...
+
+Пример:
 >BRCA1 gene fragment
 ATCGGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGC
 TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
 ..."
-                        rows="8"
-                    ></textarea>
-                    <div class="info-text">
-                        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="16" x2="12" y2="12"/>
-                            <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
-                        Minimum 90 symbols. FASTA DNA, RNA, or protein sequences are accepted.
-                    </div>
-                </div>
-
-                <!-- Upload Tab -->
-                <div class="tab-content" id="upload-tab">
-                    <div class="file-upload-area" id="file-upload-area">
-                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        <p>Drag & drop your FASTA file here</p>
-                        <p class="or-text">or</p>
-                        <label class="file-input-label">
-                            <input type="file" id="fasta-file" accept=".fasta,.fa,.fna,.ffn,.faa,.frn,.txt" class="hidden">
-                            <span class="btn btn-secondary">Choose File</span>
-                        </label>
-                        <p class="file-name" id="file-name"></p>
-                    </div>
-                </div>
-
-                <!-- Generate Button -->
-                <button id="generate-btn" class="btn btn-primary btn-large">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 18V5l12-2v13"/>
-                        <circle cx="6" cy="18" r="3"/>
-                        <circle cx="18" cy="16" r="3"/>
-                    </svg>
-                    Generate Music
-                </button>
-            </section>
-
-            <!-- Loading Section -->
-            <section class="loading-section card hidden" id="loading-section">
-                <div class="loading-spinner">
-                    <div class="spinner"></div>
-                    <h3>Generating your music...</h3>
-                    <p>Encoding biological features and composing harmony plus melody</p>
-                </div>
-            </section>
-
-            <!-- Error Section -->
-            <section class="error-section card hidden" id="error-section">
-                <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-                <h3>Generation Failed</h3>
-                <p id="error-message"></p>
-                <button id="retry-btn" class="btn btn-secondary">Try Again</button>
-            </section>
-
-            <!-- Results Section -->
-            <section class="results-section card hidden" id="results-section">
-                <h2>
-                    <svg class="success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                    Structured MIDI Generated Successfully!
-                </h2>
-
-                <!-- Audio Player -->
-                <div class="audio-player-section">
-                    <h3>Listen to Your Music</h3>
-                    <div id="audio-player-container">
-                        <audio id="audio-player" controls class="hidden">
-                            Your browser does not support the audio element.
-                        </audio>
-                        <div id="audio-unavailable" class="audio-unavailable hidden">
-                            <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            rows="8"
+                        ></textarea>
+                        <div class="info-text">
+                            <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
-                            <p>Audio playback requires a MIDI synthesizer.</p>
-                            <p class="install-hint">{{ install_instructions|default('Install fluidsynth or timidity to enable audio playback.') }}</p>
+                            Минимум 90 символов. Принимаются FASTA последовательности ДНК, РНК или белков.
                         </div>
                     </div>
-                </div>
 
-                <!-- Download Button -->
-                <a id="download-midi-btn" class="btn btn-primary btn-large" href="#" download>
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Download Harmony + Melody MIDI
-                </a>
-
-                <!-- Musical Parameters -->
-                <div class="params-section">
-                    <h3>Structured Generation Metadata</h3>
-                    <div class="params-grid">
-                        <div class="param-card">
-                            <div class="param-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 18V5l12-2v13"/>
-                                    <circle cx="6" cy="18" r="3"/>
-                                    <circle cx="18" cy="16" r="3"/>
-                                </svg>
-                            </div>
-                            <div class="param-value" id="param-tempo">-</div>
-                            <div class="param-name">Tempo (BPM)</div>
-                        </div>
-                        <div class="param-card">
-                            <div class="param-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M2 16l5-13h2l5 13H2z"/>
-                                    <path d="M5 10h8"/>
-                                </svg>
-                            </div>
-                            <div class="param-value" id="param-key">-</div>
-                            <div class="param-name">Tonal Hint</div>
-                        </div>
-                        <div class="param-card">
-                            <div class="param-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2v20M2 12h20"/>
-                                </svg>
-                            </div>
-                            <div class="param-value" id="param-pitch-range">-</div>
-                            <div class="param-name">Sequence Type</div>
-                        </div>
-                        <div class="param-card">
-                            <div class="param-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M12 6v6l4 2"/>
-                                </svg>
-                            </div>
-                            <div class="param-value" id="param-scale-type">-</div>
-                            <div class="param-name">Harmony Bars</div>
-                        </div>
-                        <div class="param-card">
-                            <div class="param-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                    <path d="M2 17l10 5 10-5"/>
-                                    <path d="M2 12l10 5 10-5"/>
-                                </svg>
-                            </div>
-                            <div class="param-value" id="param-rhythm">-</div>
-                            <div class="param-name">Melody Notes</div>
-                        </div>
-                        <div class="param-card">
-                            <div class="param-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                </svg>
-                            </div>
-                            <div class="param-value" id="param-dynamic-range">-</div>
-                            <div class="param-name">Device</div>
+                    <!-- Upload Tab -->
+                    <div class="tab-content" id="upload-tab">
+                        <div class="file-upload-area" id="file-upload-area">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p>Перетащите ваш FASTA файл сюда</p>
+                            <p class="or-text">или</p>
+                            <label class="file-input-label">
+                                <input type="file" id="fasta-file" accept=".fasta,.fa,.fna,.ffn,.faa,.frn,.txt" class="hidden">
+                                <span class="btn btn-secondary">Выбрать файл</span>
+                            </label>
+                            <p class="file-name" id="file-name"></p>
                         </div>
                     </div>
-                </div>
 
-                <!-- Sequence Info -->
-                <div class="sequence-info">
-                    <p><strong>Sequence:</strong> <span id="seq-header">-</span></p>
-                    <p><strong>Length:</strong> <span id="seq-length">-</span> symbols</p>
-                </div>
+                    <!-- Generate Button -->
+                    <button id="generate-btn" class="btn btn-primary btn-large">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18V5l12-2v13"/>
+                            <circle cx="6" cy="18" r="3"/>
+                            <circle cx="18" cy="16" r="3"/>
+                        </svg>
+                        Сгенерировать музыку
+                    </button>
+                </section>
 
-                <!-- Generate Another -->
-                <button id="generate-another-btn" class="btn btn-secondary">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                <!-- Loading Section -->
+                <section class="loading-section card hidden" id="loading-section">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <h3>Генерируем вашу музыку...</h3>
+                        <p>Кодируем биологические признаки и создаём гармонию и мелодию</p>
+                    </div>
+                </section>
+
+                <!-- Error Section -->
+                <section class="error-section card hidden" id="error-section">
+                    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
                     </svg>
-                    Generate Another
-                </button>
-            </section>
+                    <h3>Ошибка генерации</h3>
+                    <p id="error-message"></p>
+                    <button id="retry-btn" class="btn btn-secondary">Попробовать снова</button>
+                </section>
+
+                <!-- Results Section -->
+                <section class="results-section card hidden" id="results-section">
+                    <h2>
+                        <svg class="success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Структурированный MIDI успешно сгенерирован!
+                    </h2>
+
+                    <!-- Audio Player -->
+                    <div class="audio-player-section">
+                        <h3>Прослушайте вашу музыку</h3>
+                        <div id="audio-player-container">
+                            <audio id="audio-player" controls class="hidden">
+                                Ваш браузер не поддерживает аудио элемент.
+                            </audio>
+                            <div id="audio-unavailable" class="audio-unavailable hidden">
+                                <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                <p>Для воспроизведения аудио требуется MIDI синтезатор.</p>
+                                <p class="install-hint">{{ install_instructions|default('Установите fluidsynth или timidity для воспроизведения аудио.') }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Button -->
+                    <a id="download-midi-btn" class="btn btn-primary btn-large" href="#" download>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Скачать MIDI (гармония + мелодия)
+                    </a>
+
+                    <!-- Musical Parameters -->
+                    <div class="params-section">
+                        <h3>Метаданные генерации</h3>
+                        <div class="params-grid">
+                            <div class="param-card">
+                                <div class="param-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 18V5l12-2v13"/>
+                                        <circle cx="6" cy="18" r="3"/>
+                                        <circle cx="18" cy="16" r="3"/>
+                                    </svg>
+                                </div>
+                                <div class="param-value" id="param-tempo">-</div>
+                                <div class="param-name">Темп (BPM)</div>
+                            </div>
+                            <div class="param-card">
+                                <div class="param-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M2 16l5-13h2l5 13H2z"/>
+                                        <path d="M5 10h8"/>
+                                    </svg>
+                                </div>
+                                <div class="param-value" id="param-key">-</div>
+                                <div class="param-name">Тональность</div>
+                            </div>
+                            <div class="param-card">
+                                <div class="param-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2v20M2 12h20"/>
+                                    </svg>
+                                </div>
+                                <div class="param-value" id="param-pitch-range">-</div>
+                                <div class="param-name">Тип последовательности</div>
+                            </div>
+                            <div class="param-card">
+                                <div class="param-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 6v6l4 2"/>
+                                    </svg>
+                                </div>
+                                <div class="param-value" id="param-scale-type">-</div>
+                                <div class="param-name">Тактов гармонии</div>
+                            </div>
+                            <div class="param-card">
+                                <div class="param-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                        <path d="M2 17l10 5 10-5"/>
+                                        <path d="M2 12l10 5 10-5"/>
+                                    </svg>
+                                </div>
+                                <div class="param-value" id="param-rhythm">-</div>
+                                <div class="param-name">Нот мелодии</div>
+                            </div>
+                            <div class="param-card">
+                                <div class="param-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                    </svg>
+                                </div>
+                                <div class="param-value" id="param-dynamic-range">-</div>
+                                <div class="param-name">Устройство</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sequence Info -->
+                    <div class="sequence-info">
+                        <p><strong>Последовательность:</strong> <span id="seq-header">-</span></p>
+                        <p><strong>Длина:</strong> <span id="seq-length">-</span> символов</p>
+                    </div>
+
+                    <!-- Generate Another -->
+                    <button id="generate-another-btn" class="btn btn-secondary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Сгенерировать ещё
+                    </button>
+                </section>
+            </div>
+
+            <!-- Examples Page -->
+            <div class="page-content" id="examples-page">
+                <section class="examples-section card">
+                    <h2>Примеры композиций</h2>
+                    <p class="section-description">
+                        Прослушайте музыку, сгенерированную из геномов различных организмов
+                    </p>
+                    <div class="examples-grid" id="examples-grid">
+                        <!-- Example cards will be loaded here by JavaScript -->
+                        <div class="loading-examples">
+                            <div class="spinner"></div>
+                            <p>Загрузка примеров...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- About Page -->
+            <div class="page-content" id="about-page">
+                <section class="about-section card">
+                    <h2>О проекте</h2>
+
+                    <div class="about-content">
+                        <h3>Что такое BioSonification?</h3>
+                        <p>
+                            BioSonification — это исследовательский проект, который преобразует биологические последовательности
+                            (ДНК, РНК, белки) в структурированную музыку с использованием глубокого обучения.
+                        </p>
+
+                        <h3>Как это работает?</h3>
+                        <p>
+                            Система использует архитектуру трансформеров с био-кондиционированием для генерации музыки в два этапа:
+                        </p>
+                        <ol>
+                            <li><strong>Кодирование биологических признаков:</strong> Последовательность анализируется для извлечения
+                            k-mer признаков, белковых характеристик и структурной сложности.</li>
+                            <li><strong>Генерация гармонии:</strong> Био-вектор используется для создания аккордовой прогрессии.</li>
+                            <li><strong>Генерация мелодии:</strong> На основе био-вектора и сгенерированной гармонии создаётся мелодическая линия.</li>
+                        </ol>
+
+                        <h3>Технические детали</h3>
+                        <ul>
+                            <li><strong>Архитектура:</strong> Bio-Conditioned Transformer (384D, 6 heads, 6 layers)</li>
+                            <li><strong>Обучающие данные:</strong> 3,746 биологических фрагментов × 15,226 музыкальных сегментов</li>
+                            <li><strong>Датасет музыки:</strong> POP909 (8-тактовые сегменты)</li>
+                            <li><strong>Адаптивная длина:</strong> Длина композиции зависит от длины последовательности (~1 такт на 200 bp)</li>
+                        </ul>
+
+                        <h3>Научная основа</h3>
+                        <p>
+                            Система использует биологические признаки как структурированные сигналы кондиционирования для
+                            символьной генерации музыки. Проект не утверждает и не демонстрирует причинно-следственную связь
+                            между генами и музыкой — это исследование возможностей мультимодального машинного обучения.
+                        </p>
+
+                        <h3>Применение</h3>
+                        <ul>
+                            <li>Исследование паттернов в биологических данных через звуковое представление</li>
+                            <li>Образовательные цели: визуализация сложности геномов</li>
+                            <li>Художественные эксперименты на стыке биологии и музыки</li>
+                        </ul>
+
+                        <h3>Автор</h3>
+                        <p>
+                            Дипломная исследовательская работа, 2026
+                        </p>
+                    </div>
+                </section>
+            </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p>BioSonification — Structured symbolic music from biological conditioning signals</p>
-            <p class="disclaimer">
-                Disclaimer: This system uses bio-vectors as structured conditioning signals. 
-                No causal relationship between genes and music is claimed or demonstrated.
-            </p>
-        </footer>
     </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
