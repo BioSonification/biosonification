@@ -214,11 +214,27 @@ Fallback-корпус `music21` помечается как demo/smoke-test ис
 
 ## Документация
 
-- [RUN_FROM_SCRATCH.md](RUN_FROM_SCRATCH.md): полный запуск с нуля
-- [docs/architecture_and_science.md](docs/architecture_and_science.md): постановка задачи и методология
-- [docs/code_walkthrough.md](docs/code_walkthrough.md): разбор модулей
-- [docs/project_structure.md](docs/project_structure.md): файловая карта
-- [docs/thesis_experiment_summary.md](docs/thesis_experiment_summary.md): финальный эксперимент для диплома
+### Быстрый старт
+- [Запуск с нуля](docs/getting-started/run-from-scratch.md) — полная инструкция по установке и первому запуску
+- [Быстрый старт обучения](docs/getting-started/training-quickstart.md) — обучение с использованием кэша
+- [Работа с большим датасетом](docs/getting-started/large-dataset-quickstart.md) — обучение на полном датасете
+
+### Руководства
+- [Руководство по данным](docs/guides/data-guide.md) — описание биологических и музыкальных данных
+- [Руководство по предобработке](docs/guides/preprocessing-guide.md) — кэширование и оптимизация
+- [Руководство по генерации](GENERATION_GUIDE.md) — генерация музыки из геномов
+
+### Техническая документация
+- [Архитектура и научная методология](docs/technical/architecture-and-science.md) — постановка задачи и методология
+- [Разбор кода](docs/technical/code-walkthrough.md) — детальное описание модулей
+- [Структура проекта](docs/technical/project-structure.md) — файловая карта проекта
+
+### Дипломная работа
+- [Сводка экспериментов](docs/thesis/experiment-summary.md) — финальный эксперимент для диплома
+- [Полный текст диплома](docs/thesis/diploma-work.md) — полная дипломная работа
+
+### Полная документация
+- [docs/README.md](docs/README.md) — навигация по всей документации
 
 ## Локально подтверждено
 
