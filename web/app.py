@@ -5,6 +5,7 @@ Web interface for generating music from biological FASTA sequences.
 """
 
 import os
+import sys
 import numpy as np
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
@@ -23,6 +24,18 @@ app = Flask(
     static_url_path='/static'
 )
 
+# Disable caching for development
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+@app.after_request
+def add_header(response):
+    """Disable caching for all responses"""
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
+
 # Output directory for generated files
 OUTPUT_DIR = PROJECT_ROOT / "web" / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -37,7 +50,7 @@ def index():
     # Check synthesizer availability
     synth_status = check_audio_synthesizer()
     return render_template('index.html', 
-                          audio_enabled=synth_status['fluidsynth'] or synth_status['timidity'],
+                          audio_enabled=synth_status['midi2audio'] or synth_status['fluidsynth'] or synth_status['timidity'],
                           install_instructions=get_install_instructions())
 
 
@@ -85,13 +98,13 @@ def generate():
         midi_path = result['midi_path']
         session_id = result['session_id']
         wav_path = str(OUTPUT_DIR / "audio" / f"{session_id}.wav")
-        
+
         audio_available = False
         if midi_to_wav(midi_path, wav_path):
             result['audio_path'] = wav_path
             result['audio_filename'] = f"{session_id}.wav"
             audio_available = True
-        
+
         result['audio_available'] = audio_available
         result['success'] = True
         
@@ -153,7 +166,7 @@ def status():
         'error': generator.get_error() if not generator.is_ready() else None,
         'generator': generator.status_payload(),
         'audio_synthesizers': synth_status,
-        'audio_enabled': synth_status['fluidsynth'] or synth_status['timidity']
+        'audio_enabled': synth_status['midi2audio'] or synth_status['fluidsynth'] or synth_status['timidity']
     })
 
 

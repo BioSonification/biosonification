@@ -42,8 +42,7 @@ const elements = {
     paramPitchRange: document.getElementById('param-pitch-range'),
     paramScaleType: document.getElementById('param-scale-type'),
     paramRhythm: document.getElementById('param-rhythm'),
-    paramDynamicRange: document.getElementById('param-dynamic-range'),
-    
+
     // Sequence info
     seqHeader: document.getElementById('seq-header'),
     seqLength: document.getElementById('seq-length'),
@@ -241,8 +240,7 @@ function showResults(data) {
     elements.paramPitchRange.textContent = params.sequence_type;
     elements.paramScaleType.textContent = params.harmony_bars;
     elements.paramRhythm.textContent = params.melody_notes;
-    elements.paramDynamicRange.textContent = params.device;
-    
+
     // Sequence info
     elements.seqHeader.textContent = data.header || 'User Sequence';
     elements.seqLength.textContent = data.sequence_length.toLocaleString();

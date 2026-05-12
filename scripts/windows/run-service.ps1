@@ -17,6 +17,10 @@ Write-Log "=== BioSonification Service Starting ==="
 Write-Log "Python: $PythonExe"
 Write-Log "Script: $AppScript"
 
+# Add FluidSynth to PATH for audio conversion
+$env:Path = "C:\Tools\fluidsynth\bin;" + $env:Path
+Write-Log "Added FluidSynth to PATH"
+
 # Infinite loop with restart logic
 while ($true) {
     try {

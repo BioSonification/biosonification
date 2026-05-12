@@ -3,7 +3,7 @@
 # Run this script as Administrator
 
 $ServiceName = "BioSonification"
-$ProjectRoot = $PSScriptRoot | Split-Path -Parent
+$ProjectRoot = $PSScriptRoot | Split-Path -Parent | Split-Path -Parent
 $PythonExe = "$ProjectRoot\.venv\Scripts\python.exe"
 $AppScript = "$ProjectRoot\web\wsgi.py"
 $LogDir = "$ProjectRoot\logs"
@@ -34,7 +34,7 @@ if (-not (Test-Path $PythonExe)) {
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 
 # Create wrapper script that handles restart logic
-$WrapperScript = "$ProjectRoot\scripts\run-service.ps1"
+$WrapperScript = "$ProjectRoot\scripts\windows\run-service.ps1"
 $WrapperContent = @"
 # BioSonification Service Wrapper
 # This script runs the application and restarts it on failure
@@ -54,6 +54,10 @@ function Write-Log {
 Write-Log "=== BioSonification Service Starting ==="
 Write-Log "Python: `$PythonExe"
 Write-Log "Script: `$AppScript"
+
+# Add FluidSynth to PATH for audio conversion
+`$env:Path = "C:\Tools\fluidsynth\bin;" + `$env:Path
+Write-Log "Added FluidSynth to PATH"
 
 # Infinite loop with restart logic
 while (`$true) {
@@ -148,18 +152,18 @@ Write-Host ""
 Write-Host "=== Task Installed Successfully ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Management commands:"
-Write-Host "  Start:   .\scripts\start-task.ps1"
-Write-Host "  Stop:    .\scripts\stop-task.ps1"
-Write-Host "  Restart: .\scripts\restart-task.ps1"
-Write-Host "  Monitor: .\scripts\monitor-task.ps1"
+Write-Host "  Start:   .\scripts\windows\start-task.ps1"
+Write-Host "  Stop:    .\scripts\windows\stop-task.ps1"
+Write-Host "  Restart: .\scripts\windows\restart-task.ps1"
+Write-Host "  Monitor: .\scripts\windows\monitor-task.ps1"
 Write-Host ""
 Write-Host "Or use Task Scheduler directly:"
 Write-Host "  Start-ScheduledTask -TaskName $ServiceName"
 Write-Host "  Stop-ScheduledTask -TaskName $ServiceName"
 Write-Host "  Get-ScheduledTask -TaskName $ServiceName"
 Write-Host ""
-Write-Host "To uninstall: .\scripts\uninstall-task.ps1"
+Write-Host "To uninstall: .\scripts\windows\uninstall-task.ps1"
 Write-Host ""
 Write-Host "The task will start automatically on next system boot."
-Write-Host "To start now, run: .\scripts\start-task.ps1"
+Write-Host "To start now, run: .\scripts\windows\start-task.ps1"
 Write-Host ""
