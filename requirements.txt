@@ -18,3 +18,7 @@ transformers>=4.57.0
 # Web Interface Dependencies
 flask>=3.0.0
 werkzeug>=3.0.0
+
+# Production Server
+waitress>=3.0.0
+python-dotenv>=1.0.0

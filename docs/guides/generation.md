@@ -1,10 +1,4 @@
-# Руководство по генерации музыки из геномов
-
-**Дата создания:** 2026-05-07  
-**Последнее обновление:** 2026-05-08  
-**Статус:** Фрагментированная генерация с 4-тактовой моделью
-
----
+# Руководство по генерации музыки
 
 ## Быстрый старт
 
@@ -54,11 +48,6 @@
 - ❌ Качество падает: гармония повторяется, мелодия становится монотонной
 - ❌ Не использует всю информацию из длинной последовательности
 
-**Пример результата (10000 bp):**
-- Использует: 1800 bp (первый фрагмент)
-- Генерирует: 9 тактов, 63 ноты
-- Качество: низкое для длинных композиций
-
 ### Фрагментированная генерация (generate_from_fasta_v2_fragmented.py)
 
 **Как работает:**
@@ -71,14 +60,9 @@
 - ✅ Использует всю последовательность
 - ✅ Больше разнообразия (каждый фрагмент имеет свой био-вектор и темп)
 
-**Пример результата (10000 bp):**
-- Использует: 10000 bp (6 фрагментов)
-- Генерирует: 24 такта, 166 нот
-- Качество: стабильное на протяжении всей композиции
-
 ---
 
-## Параметры фрагментированной генерации
+## Параметры генерации
 
 ### Основные параметры
 
@@ -107,23 +91,6 @@
 - Меньше фрагментов → меньше переходов
 - Более длинные сегменты
 
-### Как работает фрагментация
-
-```
-Длинная последовательность (10000 bp)
-↓
-Разбить на фрагменты по 1800 bp (stride 1800)
-↓
-Fragment 1 (0-1800)    → Bio vector 1 → Generate 4 bars → MIDI segment 1
-Fragment 2 (1800-3600) → Bio vector 2 → Generate 4 bars → MIDI segment 2
-Fragment 3 (3600-5400) → Bio vector 3 → Generate 4 bars → MIDI segment 3
-Fragment 4 (5400-7200) → Bio vector 4 → Generate 4 bars → MIDI segment 4
-Fragment 5 (7200-9000) → Bio vector 5 → Generate 4 bars → MIDI segment 5
-Fragment 6 (9000-10000) → Bio vector 6 → Generate 4 bars → MIDI segment 6
-↓
-Concatenate all MIDI segments → Final MIDI (24 bars)
-```
-
 ### Расчет длины композиции
 
 | Длина последовательности | Фрагментов | Тактов (4-bar) | Тактов (8-bar) | Примерная длительность |
@@ -148,15 +115,6 @@ Concatenate all MIDI segments → Final MIDI (24 bars)
 - Validation loss: Harmony 0.145, Melody 0.157
 - Время обучения: 52 минуты на RTX 2060
 
-**Использование:**
-```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
-  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta your_sequence.fna `
-  --output output.mid `
-  --bars-per-fragment 4
-```
-
 ### 8-тактовая модель
 
 **Checkpoint:** `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt`  
@@ -167,15 +125,6 @@ Concatenate all MIDI segments → Final MIDI (24 bars)
 - Обучающие данные: 8-тактовые сегменты из POP909
 - Validation loss: Harmony 0.179, Melody 0.215
 - Время обучения: ~60 минут на RTX 2060
-
-**Использование:**
-```powershell
-.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
-  --checkpoint results\v2_medium_rtx2060_long\checkpoints\structured_pipeline.pt `
-  --fasta your_sequence.fna `
-  --output output.mid `
-  --bars-per-fragment 8
-```
 
 ---
 
@@ -232,55 +181,7 @@ Concatenate all MIDI segments → Final MIDI (24 bars)
 - ~48 нот мелодии
 - ~16 секунд
 
-### 3. Длинная последовательность (Drosophila, 10000 bp)
-
-```powershell
-# Создать тестовую последовательность
-.\.venv\Scripts\python.exe -c "from Bio import SeqIO; r = list(SeqIO.parse('data/fasta/refseq_genomes/GCF_000001215.4_genomic.fna', 'fasta'))[0]; print(f'>{r.id}_10000bp\n{str(r.seq)[:10000]}')" | Out-File -Encoding utf8 "data\test\drosophila_10000bp.fna"
-
-# Генерация
-.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
-  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\test\drosophila_10000bp.fna `
-  --output results\generated_music\drosophila_long.mid `
-  --bars-per-fragment 4
-```
-
-**Ожидаемый результат:**
-- 6 фрагментов
-- 24 такта
-- ~150-170 нот мелодии
-- ~48 секунд
-
-### 4. Сравнение baseline vs fragmented
-
-```powershell
-# Baseline (только первый фрагмент)
-.\.venv\Scripts\python.exe generate_from_fasta_v2.py `
-  --checkpoint results\v2_medium_rtx2060_long\checkpoints\structured_pipeline.pt `
-  --fasta data\test\drosophila_10000bp.fna `
-  --output results\comparison\drosophila_baseline.mid `
-  --config configs\pipeline_v2_medium_rtx2060_long.json
-
-# Fragmented (все фрагменты)
-.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
-  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\test\drosophila_10000bp.fna `
-  --output results\comparison\drosophila_fragmented.mid `
-  --bars-per-fragment 4
-```
-
-**Сравнение результатов:**
-
-| Метрика | Baseline | Fragmented |
-|---------|----------|------------|
-| Использовано bp | 1800 | 10000 |
-| Фрагментов | 1 | 6 |
-| Тактов | 9 | 24 |
-| Нот мелодии | ~63 | ~166 |
-| Качество | Низкое (повторения) | Стабильное |
-
-### 5. Batch генерация для всех геномов
+### 3. Batch генерация для всех геномов
 
 ```powershell
 $genomes = @(
@@ -345,12 +246,6 @@ foreach ($genome in $genomes) {
 }
 ```
 
-**Ключевые поля:**
-- `num_fragments` — количество фрагментов
-- `total_bars` — общее количество тактов
-- `total_melody_notes` — общее количество нот мелодии
-- `fragments` — детали по каждому фрагменту (темп, количество нот)
-
 ---
 
 ## Troubleshooting
@@ -407,18 +302,6 @@ python generate_from_fasta_v2_fragmented.py ...
 --config configs\pipeline_v2_medium_rtx2060_long.json
 ```
 
-### Проблема: MIDI файл пустой (106 байт)
-
-**Причина:** Эта проблема была исправлена в последней версии
-
-**Решение:** Убедитесь, что используете актуальную версию кода
-
-```powershell
-# Проверить размер сгенерированного MIDI
-(Get-Item "output.mid").Length
-# Должно быть >300 байт для коротких последовательностей
-```
-
 ---
 
 ## Технические детали
@@ -429,13 +312,6 @@ python generate_from_fasta_v2_fragmented.py ...
 - **Harmony model:** Bio-conditioned transformer (384D, 6 heads, 6 layers)
 - **Melody model:** Bio-conditioned transformer (384D, 6 heads, 6 layers)
 
-### Обучение 4-тактовой модели
-
-- **Датасет:** 3,746 bio фрагментов × 15,226 music сегментов (4 bars)
-- **Время обучения:** 52 минуты на RTX 2060
-- **Harmony loss:** 0.145 (val), 0.139 (test)
-- **Melody loss:** 0.157 (val), 0.165 (test)
-
 ### Процесс фрагментированной генерации
 
 1. **Фрагментация:** Разбить последовательность на фрагменты по 1800 bp
@@ -444,49 +320,3 @@ python generate_from_fasta_v2_fragmented.py ...
 4. **Melody generation:** Bio vector + harmony → melody notes (48 tokens/bar)
 5. **Concatenation:** Склеить все MIDI сегменты с правильным смещением по времени
 6. **Rendering:** Финальный Score → MIDI file
-
----
-
-## Следующие шаги
-
-### 1. Веб-интерфейс
-
-Запустить веб-интерфейс с фрагментированной генерацией:
-
-```powershell
-.\.venv\Scripts\python.exe -m web.app
-# Откройте http://localhost:5001
-```
-
-### 2. Evaluation
-
-Оценить качество сгенерированной музыки:
-
-```powershell
-.\.venv\Scripts\python.exe tools\evaluate_structured_v2.py `
-  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-  --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
-  --output-dir results\evaluation `
-  --max-records 20
-```
-
-### 3. Генерация для всех хромосом
-
-Сгенерировать музыку для каждой хромосомы отдельно:
-
-```powershell
-# Пример для yeast (17 хромосом)
-for ($i=0; $i -lt 17; $i++) {
-    .\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
-      --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
-      --fasta data\fasta\refseq_genomes\GCF_000146045.2_genomic.fna `
-      --output "results\generated_music\yeast_chr$i.mid" `
-      --record-index $i `
-      --bars-per-fragment 4
-}
-```
-
----
-
-**Автор:** Claude Code  
-**Последнее обновление:** 2026-05-08

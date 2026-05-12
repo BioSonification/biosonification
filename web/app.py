@@ -332,6 +332,34 @@ def stream_example_audio(example_id):
     )
 
 
+@app.route('/health')
+def health():
+    """Health check endpoint for monitoring."""
+    from datetime import datetime
+
+    generator = get_generator()
+
+    health_status = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'generator_ready': generator.is_ready()
+    }
+
+    # Check GPU availability
+    try:
+        import torch
+        health_status['gpu_available'] = torch.cuda.is_available()
+    except:
+        health_status['gpu_available'] = False
+
+    if not generator.is_ready():
+        health_status['status'] = 'degraded'
+        health_status['error'] = generator.get_error()
+
+    status_code = 200 if health_status['status'] == 'healthy' else 503
+    return jsonify(health_status), status_code
+
+
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({
@@ -348,8 +376,44 @@ def internal_error(e):
     }), 500
 
 
+def setup_logging():
+    """Configure logging for production."""
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    log_level = os.getenv("BIOSONIFICATION_LOG_LEVEL", "INFO")
+    log_file = os.getenv("BIOSONIFICATION_LOG_FILE")
+
+    # Configure root logger
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper(), logging.INFO),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
+    # Add file handler if specified
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=10*1024*1024,  # 10MB
+            backupCount=5
+        )
+        file_handler.setFormatter(
+            logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        )
+        logging.getLogger().addHandler(file_handler)
+
+    # Set Flask app logger level
+    app.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+
+
 def main():
     """Run the web application."""
+    # Setup logging
+    setup_logging()
+
     # Pre-initialize generator
     print("Initializing BioSonification generator...")
     generator = get_generator()
