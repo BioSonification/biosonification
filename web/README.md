@@ -1,35 +1,36 @@
-# BioSonification Web Interface
+# Веб-интерфейс BioSonification
 
-Flask interface for the structured `v2` biosonification pipeline with **fragmented generation**. It generates a two-track symbolic MIDI file from FASTA input:
+Flask-интерфейс для структурированного конвейера биосонификации `v2` с **фрагментированной генерацией**. Он создает двухдорожечный символический MIDI-файл из входных данных FASTA:
 
-- harmony track: bar-level chord grid
-- melody track: monophonic melody conditioned on the generated harmony
+- дорожка гармонии: аккордовая сетка на уровне тактов
+- дорожка мелодии: одноголосная мелодия, зависящая от сгенерированной гармонии
 
-## Key Features
+## Ключевые возможности
 
-- **Fragmented Generation**: Automatically splits long sequences into fragments and generates high-quality music for each
-- **4-Bar Model**: Uses the best-performing model (val_loss 0.145 for harmony, 0.157 for melody)
-- **Adaptive Length**: Longer sequences → longer compositions without quality degradation
-- **FASTA Input**: Paste sequence or upload file (drag & drop supported)
-- **Examples Gallery**: Pre-generated compositions from different organisms
-- **Audio Playback**: Listen to examples directly in browser (requires fluidsynth/timidity)
-- **MIDI Download**: Download generated and example MIDI files
-- **Metadata Display**: View generation parameters (tempo, key, bars, notes, fragments)
+- **Фрагментированная генерация**: автоматически разбивает длинные последовательности на фрагменты и генерирует качественную музыку для каждого фрагмента
+- **4-тактовая модель**: использует модель с лучшими результатами (val_loss 0.145 для гармонии, 0.157 для мелодии)
+- **Адаптивная длина**: более длинные последовательности дают более длинные композиции без ухудшения качества
+- **Ввод FASTA**: можно вставить последовательность или загрузить файл; поддерживается перетаскивание
+- **Галерея примеров**: заранее сгенерированные композиции для разных организмов
+- **Воспроизведение аудио**: примеры можно слушать прямо в браузере; требуется FluidSynth или TiMidity++
+- **Скачивание MIDI**: можно скачать сгенерированные MIDI-файлы и MIDI-файлы примеров
+- **Отображение метаданных**: параметры генерации, включая темп, тональность, такты, ноты и фрагменты
 
-## Requirements
+## Требования
 
-Install the project dependencies from the repository root:
+Установите зависимости проекта из корня репозитория:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The web interface automatically uses:
-- **Model**: `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-bar model, best quality)
-- **Config**: `configs/pipeline_v2_medium_rtx2060_fast.json`
-- **Generation**: Fragmented approach with `bars_per_fragment=4`
+Веб-интерфейс автоматически использует:
 
-Optional overrides:
+- **Модель**: `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-тактовая модель, лучшее качество)
+- **Конфигурация**: `configs/pipeline_v2_medium_rtx2060_fast.json`
+- **Генерация**: фрагментированный подход с `bars_per_fragment=4`
+
+Необязательные переопределения:
 
 ```bash
 export BIOSONIFICATION_STRUCTURED_CHECKPOINT=/absolute/path/to/structured_pipeline.pt
@@ -37,17 +38,17 @@ export BIOSONIFICATION_CONFIG_PATH=/absolute/path/to/config.json
 export BIOSONIFICATION_DEVICE=auto
 ```
 
-`BIOSONIFICATION_DEVICE` accepts `auto`, `cpu`, or `cuda`.
+`BIOSONIFICATION_DEVICE` принимает значения `auto`, `cpu` или `cuda`.
 
-## Run
+## Запуск
 
 ```bash
 python -m web.app
 ```
 
-Open `http://localhost:5001`.
+Откройте `http://localhost:5001`.
 
-Optional server settings:
+Необязательные настройки сервера:
 
 ```bash
 export BIOSONIFICATION_HOST=127.0.0.1
@@ -55,31 +56,33 @@ export BIOSONIFICATION_PORT=5001
 export BIOSONIFICATION_DEBUG=0
 ```
 
-## Input
+## Входные данные
 
-The web form accepts pasted text or FASTA upload. DNA, RNA, and protein-like sequences are accepted by the structured `v2` encoder. The minimum cleaned sequence length is 90 symbols for the default config.
+Веб-форма принимает вставленный текст или загруженный FASTA-файл. Структурированный кодировщик `v2` принимает последовательности ДНК, РНК и белок-подобные последовательности. Минимальная длина очищенной последовательности для конфигурации по умолчанию составляет 90 символов.
 
-**Fragmented Generation:**
-- Sequences are automatically split into 1800 bp fragments
-- Each fragment generates 4 bars of music
-- All fragments are concatenated into one MIDI file
+**Фрагментированная генерация:**
 
-**Examples:**
-- 1800 bp → 1 fragment → 4 bars (~8 seconds)
-- 3600 bp → 2 fragments → 8 bars (~16 seconds)
-- 10000 bp → 6 fragments → 24 bars (~48 seconds)
+- последовательности автоматически разбиваются на фрагменты по 1800 bp
+- каждый фрагмент генерирует 4 такта музыки
+- все фрагменты объединяются в один MIDI-файл
+
+**Примеры:**
+
+- 1800 bp -> 1 фрагмент -> 4 такта (~8 секунд)
+- 3600 bp -> 2 фрагмента -> 8 тактов (~16 секунд)
+- 10000 bp -> 6 фрагментов -> 24 такта (~48 секунд)
 
 ## API
 
-- `GET /api/status` returns generator readiness, structured checkpoint path, config path, and audio synthesizer status.
-- `POST /api/generate` accepts JSON `{ "fasta": "..." }` or multipart `fasta_file`.
-- `GET /api/download/<session_id>/midi` downloads the generated MIDI.
-- `GET /api/download/<session_id>/wav` downloads rendered WAV when an optional synthesizer is available.
-- `GET /api/examples` returns list of example compositions with metadata.
-- `GET /api/examples/<example_id>/midi` downloads example MIDI file.
-- `GET /api/examples/<example_id>/audio` streams example audio (WAV, converts on first request).
+- `GET /api/status` возвращает готовность генератора, путь к структурированному checkpoint-файлу, путь к конфигурации и статус аудиосинтезатора.
+- `POST /api/generate` принимает JSON `{ "fasta": "..." }` или multipart-поле `fasta_file`.
+- `GET /api/download/<session_id>/midi` скачивает сгенерированный MIDI.
+- `GET /api/download/<session_id>/wav` скачивает отрендеренный WAV, если доступен необязательный синтезатор.
+- `GET /api/examples` возвращает список примеров композиций с метаданными.
+- `GET /api/examples/<example_id>/midi` скачивает MIDI-файл примера.
+- `GET /api/examples/<example_id>/audio` передает аудио примера потоком; WAV создается при первом запросе.
 
-The generation response includes structured metadata:
+Ответ генерации включает структурированные метаданные:
 
 - `sequence_id`
 - `sequence_type`
@@ -88,7 +91,7 @@ The generation response includes structured metadata:
 - `bars_per_fragment`
 - `total_bars`
 - `total_melody_notes`
-- `fragments` — array with per-fragment details:
+- `fragments` - массив с деталями по каждому фрагменту:
   - `fragment_index`
   - `start_position`
   - `fragment_length`
@@ -96,38 +99,41 @@ The generation response includes structured metadata:
   - `harmony_bars`
   - `melody_notes`
 
-## Output
+## Результаты
 
-Runtime files are written under `web/output/`:
+Файлы времени выполнения записываются в `web/output/`:
 
 ```text
 web/output/
-├── fasta/
-├── metadata/
-├── midi/
-└── audio/
+|-- fasta/
+|-- metadata/
+|-- midi/
+`-- audio/
 ```
 
-This directory is ignored by git.
+Эта директория игнорируется Git.
 
-## Scientific Note
+## Научное примечание
 
-The system uses biological features as structured conditioning signals for symbolic music generation. It does not demonstrate or claim a causal relationship between genes and music.
+Система использует биологические признаки как структурированные управляющие сигналы для символической генерации музыки. Она не доказывает и не заявляет причинно-следственную связь между генами и музыкой.
 
-## Technical Implementation
+## Техническая реализация
 
-**Generator Backend** (`web/generator.py`):
-- Uses `generate_structured_music_from_fasta_fragmented()` for all generations
-- Automatically selects the 4-bar model (`v2_medium_rtx2060_fast`) for best quality
-- Fragments long sequences (>1800 bp) into multiple segments
-- Concatenates all segments into a single MIDI file
+**Серверная часть генератора** (`web/generator.py`):
 
-**Model Selection Priority**:
-1. `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-bar, best)
-2. `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt` (8-bar, fallback)
-3. Newest checkpoint in `results/*/checkpoints/structured_pipeline.pt`
+- использует `generate_structured_music_from_fasta_fragmented()` для всех генераций
+- автоматически выбирает 4-тактовую модель (`v2_medium_rtx2060_fast`) для лучшего качества
+- разбивает длинные последовательности (>1800 bp) на несколько сегментов
+- объединяет все сегменты в один MIDI-файл
 
-**Why Fragmented Generation**:
-- Models trained on short segments (4-8 bars) produce poor quality for long compositions
-- Fragmentation keeps each segment within the training distribution
-- Result: stable quality regardless of sequence length
+**Приоритет выбора модели:**
+
+1. `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4 такта, лучшая)
+2. `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt` (8 тактов, запасной вариант)
+3. Самый новый checkpoint-файл в `results/*/checkpoints/structured_pipeline.pt`
+
+**Зачем нужна фрагментированная генерация:**
+
+- модели, обученные на коротких сегментах (4-8 тактов), дают низкое качество на длинных композициях
+- фрагментация удерживает каждый сегмент внутри распределения обучающих данных
+- результат: стабильное качество независимо от длины последовательности

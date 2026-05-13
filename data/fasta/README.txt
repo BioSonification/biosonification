@@ -1,11 +1,11 @@
-FASTA Dataset Directory
-=======================
+Директория FASTA-датасета
+==========================
 
-Place your FASTA files (.fasta, .fa, .fna, .ffn, .faa, .frn) in this directory 
-or any subdirectory. The pipeline will automatically discover and process 
-all FASTA files found here.
+Поместите FASTA-файлы (.fasta, .fa, .fna, .ffn, .faa, .frn) в эту директорию
+или любую вложенную директорию. Конвейер автоматически найдет и обработает
+все FASTA-файлы, расположенные здесь.
 
-Supported formats:
+Поддерживаемые форматы:
 - .fasta
 - .fa
 - .fna
@@ -13,9 +13,9 @@ Supported formats:
 - .faa
 - .frn
 
-You can organize files in subdirectories if needed:
+При необходимости файлы можно организовать во вложенных директориях:
 - data/fasta/human/
 - data/fasta/microbial/
 - data/fasta/custom/
 
-All files will be included in the dataset.
+Все файлы будут включены в датасет.

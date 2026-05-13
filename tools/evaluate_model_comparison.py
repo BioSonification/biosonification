@@ -521,7 +521,7 @@ def _write_thesis_update(report: Dict[str, Any], output_path: Path) -> None:
                 f"`{_format_float(_metric_mean(current, 'chord_tone_ratio'))}` против "
                 f"`{_format_float(_metric_mean(baseline, 'chord_tone_ratio'))}`, то есть "
                 f"{_format_percent(current_vs_baseline['chord_tone_ratio']['relative_delta'])}. "
-                "Относительно предыдущей дипломной модели эта же метрика выросла с "
+                "Относительно предыдущей модели эта же метрика выросла с "
                 f"`{_format_float(_metric_mean(previous, 'chord_tone_ratio'))}` до "
                 f"`{_format_float(_metric_mean(current, 'chord_tone_ratio'))}` "
                 f"({_format_percent(current_vs_previous['chord_tone_ratio']['relative_delta'])})."
@@ -529,7 +529,7 @@ def _write_thesis_update(report: Dict[str, Any], output_path: Path) -> None:
             "",
             (
                 "Сравнение по количеству нот нужно читать осторожно: актуальная web-модель генерирует "
-                "4-тактовые фрагменты, а предыдущая дипломная модель — более длинные 8-тактовые фразы. "
+                "4-тактовые фрагменты, а предыдущая модель — более длинные 8-тактовые фразы. "
                 "Поэтому для плотности мелодии важнее `note_density_per_bar`: "
                 f"`{_format_float(_metric_mean(current, 'note_density_per_bar'))}` против "
                 f"`{_format_float(_metric_mean(previous, 'note_density_per_bar'))}` у предыдущей модели. "
