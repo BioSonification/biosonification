@@ -1,0 +1,107 @@
+\babel@toc {russian}{}\relax 
+\contentsline {chapter}{ГЛОССАРИЙ}{6}{chapter*.1}%
+\contentsline {chapter}{ВВЕДЕНИЕ}{8}{chapter*.2}%
+\contentsline {chapter}{\numberline {1}АНАЛИЗ ПРЕДМЕТНОЙ ОБЛАСТИ И СУЩЕСТВУЮЩИХ РЕШЕНИЙ}{11}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Биологические последовательности как объект сонификации}{11}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Почему музыка подходит для представления биологических данных}{11}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Ограничения музыкальной интерпретации}{11}{subsection.1.1.2}%
+\contentsline {section}{\numberline {1.2}Обзор существующих подходов к биосонификации}{12}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Прямое отображение символов}{12}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Алгоритмическая композиция}{12}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}Генеративные модели без структурного разделения}{12}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}Обзор методов генерации символической музыки}{13}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Рекуррентные нейронные сети}{13}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Вариационные автоэнкодеры}{13}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Генеративно-состязательные сети}{13}{subsection.1.3.3}%
+\contentsline {subsection}{\numberline {1.3.4}Трансформеры}{13}{subsection.1.3.4}%
+\contentsline {section}{\numberline {1.4}Сравнение существующих решений}{13}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Недостатки существующих решений}{14}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Постановка задачи}{14}{section.1.6}%
+\contentsline {chapter}{\numberline {2}ПРОЕКТИРОВАНИЕ И РЕАЛИЗАЦИЯ СИСТЕМЫ}{16}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Техническое задание}{16}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Назначение разработки}{16}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Функциональные требования}{16}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Нефункциональные требования}{16}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Архитектура системы}{16}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Биологический энкодер}{17}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Поддерживаемые типы последовательностей}{17}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Фрагментация}{17}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Извлекаемые признаки}{17}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Выходные данные}{18}{subsection.2.3.4}%
+\contentsline {section}{\numberline {2.4}Музыкальное представление}{18}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Структуры данных}{18}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Токенизация}{18}{subsection.2.4.2}%
+\contentsline {section}{\numberline {2.5}Pairing биологических и музыкальных сегментов}{18}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Музыкальные дескрипторы}{18}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Калибровка}{19}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Top-k matching}{19}{subsection.2.5.3}%
+\contentsline {section}{\numberline {2.6}Нейросетевая модель}{19}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Архитектура}{19}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Bio conditioning}{19}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Использование модели}{19}{subsection.2.6.3}%
+\contentsline {section}{\numberline {2.7}Процесс обучения}{20}{section.2.7}%
+\contentsline {subsection}{\numberline {2.7.1}Конфигурация}{20}{subsection.2.7.1}%
+\contentsline {subsection}{\numberline {2.7.2}Данные}{20}{subsection.2.7.2}%
+\contentsline {subsection}{\numberline {2.7.3}Обучение harmony model}{20}{subsection.2.7.3}%
+\contentsline {subsection}{\numberline {2.7.4}Обучение melody model}{20}{subsection.2.7.4}%
+\contentsline {section}{\numberline {2.8}Реализация}{20}{section.2.8}%
+\contentsline {chapter}{\numberline {3}ЭКСПЕРИМЕНТАЛЬНАЯ ОЦЕНКА И АНАЛИЗ РЕЗУЛЬТАТОВ}{22}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Методика проверки}{22}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Метрики оценки}{22}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Технические метрики}{22}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Baseline}{23}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}Результаты обучения}{23}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Динамика loss}{23}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Сравнение loss}{23}{subsection.3.3.2}%
+\contentsline {section}{\numberline {3.4}Результаты генерации}{24}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Сравнение моделей и baseline}{24}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Интерпретация результатов}{24}{subsection.3.4.2}%
+\contentsline {section}{\numberline {3.5}Анализ сгенерированных композиций}{26}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Ограничения разработанного решения}{26}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Технические ограничения}{26}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Методологические ограничения}{27}{subsection.3.6.2}%
+\contentsline {subsection}{\numberline {3.6.3}Музыкальные ограничения}{27}{subsection.3.6.3}%
+\contentsline {section}{\numberline {3.7}Оценка достоверности результатов}{27}{section.3.7}%
+\contentsline {subsection}{\numberline {3.7.1}Воспроизводимость}{27}{subsection.3.7.1}%
+\contentsline {subsection}{\numberline {3.7.2}Валидность метрик}{27}{subsection.3.7.2}%
+\contentsline {subsection}{\numberline {3.7.3}Ограничения интерпретации}{27}{subsection.3.7.3}%
+\contentsline {chapter}{ЗАКЛЮЧЕНИЕ}{29}{chapter*.8}%
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {russian}{}\relax 
+\contentsline {chapter}{\numberline {A}ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ СИСТЕМЫ}{33}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Установка и запуск}{33}{section.A.1}%
+\contentsline {subsection}{\numberline {A.1.1}Требования}{33}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Установка зависимостей}{33}{subsection.A.1.2}%
+\contentsline {subsection}{\numberline {A.1.3}Подготовка данных}{33}{subsection.A.1.3}%
+\contentsline {section}{\numberline {A.2}Обучение модели}{33}{section.A.2}%
+\contentsline {subsection}{\numberline {A.2.1}Конфигурация}{33}{subsection.A.2.1}%
+\contentsline {subsection}{\numberline {A.2.2}Запуск обучения}{34}{subsection.A.2.2}%
+\contentsline {section}{\numberline {A.3}Генерация музыки}{34}{section.A.3}%
+\contentsline {subsection}{\numberline {A.3.1}Из FASTA файла}{34}{subsection.A.3.1}%
+\contentsline {subsection}{\numberline {A.3.2}Через веб-интерфейс}{34}{subsection.A.3.2}%
+\contentsline {section}{\numberline {A.4}Примеры входных данных}{34}{section.A.4}%
+\contentsline {subsection}{\numberline {A.4.1}FASTA формат}{34}{subsection.A.4.1}%
+\contentsline {subsection}{\numberline {A.4.2}Protein FASTA}{35}{subsection.A.4.2}%
+\contentsline {chapter}{\numberline {B}СТРУКТУРА ПРОЕКТА}{36}{appendix.B}%
+\contentsline {section}{\numberline {B.1}Основные модули}{36}{section.B.1}%
+\contentsline {section}{\numberline {B.2}Ключевые файлы}{36}{section.B.2}%
+\contentsline {chapter}{\numberline {C}ДОПОЛНИТЕЛЬНЫЕ ТАБЛИЦЫ И ГРАФИКИ}{37}{appendix.C}%
+\contentsline {section}{\numberline {C.1}Детальная статистика обучения}{37}{section.C.1}%
+\contentsline {section}{\numberline {C.2}Детальная статистика генерации}{37}{section.C.2}%
+\contentsline {section}{\numberline {C.3}Примеры биологических признаков}{37}{section.C.3}%

@@ -1,0 +1,257 @@
+\appendix
+
+\stepcounter{appendixnum}
+\chapter{ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ СИСТЕМЫ}
+
+\section{Установка и запуск}
+
+\subsection{Требования}
+
+\begin{itemize}
+\item Python 3.10+
+\item CUDA-совместимый GPU (рекомендуется 6GB+ VRAM)
+\item 8GB+ RAM
+\item 5GB свободного места на диске
+\end{itemize}
+
+\subsection{Установка зависимостей}
+
+\begin{verbatim}
+pip install torch torchvision torchaudio --index-url
+  https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
+\end{verbatim}
+
+\subsection{Подготовка данных}
+
+\begin{verbatim}
+# Скачать POP909 датасет
+python scripts/download_pop909.py
+
+# Подготовить FASTA файлы
+python scripts/prepare_fasta.py
+\end{verbatim}
+
+\section{Обучение модели}
+
+\subsection{Конфигурация}
+
+Пример конфигурационного файла \texttt{config.json}:
+
+\begin{verbatim}
+{
+  "model": {
+    "d_model": 384,
+    "n_layers": 6,
+    "n_heads": 6,
+    "dim_feedforward": 1536,
+    "dropout": 0.20
+  },
+  "training": {
+    "batch_size": 8,
+    "gradient_accumulation_steps": 4,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.05,
+    "max_epochs": 35
+  }
+}
+\end{verbatim}
+
+\subsection{Запуск обучения}
+
+\begin{verbatim}
+python train_bio_music_v2.py \
+  --config configs/pipeline_v2_medium_rtx2060_fast.json \
+  --output_dir results/my_experiment
+\end{verbatim}
+
+\section{Генерация музыки}
+
+\subsection{Из FASTA файла}
+
+\begin{verbatim}
+python generate_from_fasta_v2_fragmented.py \
+  --fasta data/fasta/training/thesis_reference_genomes.fa \
+  --checkpoint results/v2_medium_rtx2060_fast/
+    checkpoints/structured_pipeline.pt \
+  --config configs/pipeline_v2_medium_rtx2060_fast.json \
+  --bars-per-fragment 4 \
+  --output generated_music.mid
+\end{verbatim}
+
+\subsection{Через веб-интерфейс}
+
+\begin{verbatim}
+cd web
+python app.py
+\end{verbatim}
+
+Откройте браузер по адресу \texttt{http://localhost:5001}.
+
+\section{Примеры входных данных}
+
+\subsection{FASTA формат}
+
+\begin{verbatim}
+>NC_000913.3 Escherichia coli K-12 MG1655
+AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTC
+TGATAGCAGCTTCTGAACTGGTTACCTGCCGTGAGTAAATTAAAATTTTATTGACTTAGG
+TCACTAAATACTTTAACCAATATAGGCATAGCGCACAGACAGATAAAAATTACAGAGTAC
+\end{verbatim}
+
+\subsection{Protein FASTA}
+
+\begin{verbatim}
+>sp|P0A7B8|RPOB_ECOLI DNA-directed RNA polymerase
+MQTLNDRLLVLPVELLRGETVRRTQTDSPYAQLADALRQRLAERLGVQPLVVFEMADLR
+AAFNHSSQPGTTLPQYVEMLPKQKVLGAMVTHRLSAEEKAELWQRIRQNVREARKQIVR
+\end{verbatim}
+
+\stepcounter{appendixnum}
+\chapter{СТРУКТУРА ПРОЕКТА}
+
+\section{Основные модули}
+
+\begin{verbatim}
+biosonification/
+├── bio_music_pipeline/
+│   ├── v2/
+│   │   ├── bio.py              # Биологический энкодер
+│   │   ├── structured_music.py # Музыкальное представление
+│   │   ├── structured_pairing.py # Pairing модуль
+│   │   └── structured_model.py # Нейросетевая модель
+│   └── utils/
+├── configs/                    # Конфигурационные файлы
+├── data/                       # Данные (FASTA, MIDI)
+├── results/                    # Результаты экспериментов
+├── web/                        # Веб-интерфейс
+├── train_bio_music_v2.py      # CLI обучения
+└── generate_from_fasta_v2_fragmented.py # CLI генерации
+\end{verbatim}
+
+\section{Ключевые файлы}
+
+\begin{itemize}
+\item \texttt{bio.py} — извлечение биологических признаков
+\item \texttt{structured\_music.py} — структуры HarmonyBar и MelodyEvent
+\item \texttt{structured\_pairing.py} — сопоставление bio и music сегментов
+\item \texttt{structured\_model.py} — Bio-Conditioned Transformer
+\item \texttt{train\_bio\_music\_v2.py} — основной скрипт обучения
+\item \texttt{generate\_from\_fasta\_v2\_fragmented.py} — генерация MIDI
+\end{itemize}
+
+\stepcounter{appendixnum}
+\chapter{ДОПОЛНИТЕЛЬНЫЕ ТАБЛИЦЫ И ГРАФИКИ}
+
+\section{Детальная статистика обучения}
+
+\begin{table}[htbp]
+\centering
+\caption{Динамика обучения harmony model по эпохам}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Epoch} & \textbf{Train Loss} & \textbf{Val Loss} \\
+\hline
+1 & 0.171 & 0.159 \\
+2 & 0.126 & 0.145 \\
+3 & 0.109 & 0.147 \\
+4 & 0.097 & 0.146 \\
+5 & 0.087 & 0.150 \\
+6 & 0.080 & 0.156 \\
+7 & 0.074 & 0.152 \\
+8 & 0.070 & 0.156 \\
+9 & 0.065 & 0.154 \\
+10 & 0.061 & 0.156 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Динамика обучения melody model по эпохам}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Epoch} & \textbf{Train Loss} & \textbf{Val Loss} \\
+\hline
+1 & 0.255 & 0.202 \\
+2 & 0.167 & 0.179 \\
+3 & 0.131 & 0.171 \\
+4 & 0.108 & 0.164 \\
+5 & 0.091 & 0.161 \\
+6 & 0.079 & 0.158 \\
+7 & 0.070 & 0.157 \\
+8 & 0.062 & 0.163 \\
+9 & 0.056 & 0.157 \\
+10 & 0.051 & 0.162 \\
+11 & 0.047 & 0.169 \\
+12 & 0.043 & 0.162 \\
+13 & 0.040 & 0.162 \\
+14 & 0.038 & 0.162 \\
+15 & 0.036 & 0.169 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Детальная статистика генерации}
+
+\begin{table}[htbp]
+\centering
+\caption{Метрики для каждого тестового фрагмента}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Fragment} & \textbf{Notes} & \textbf{Pitch range} & \textbf{Unique pitches} & \textbf{Chord-tone ratio} \\
+\hline
+1 & 20 & 17 & 9 & 0.650 \\
+2 & 24 & 18 & 8 & 0.708 \\
+3 & 16 & 12 & 6 & 0.750 \\
+4 & 25 & 14 & 8 & 0.800 \\
+5 & 23 & 17 & 9 & 0.783 \\
+6 & 20 & 10 & 6 & 0.800 \\
+7 & 16 & 10 & 6 & 0.500 \\
+8 & 26 & 14 & 11 & 0.538 \\
+9 & 21 & 12 & 8 & 0.667 \\
+10 & 21 & 16 & 10 & 0.762 \\
+11 & 20 & 10 & 8 & 0.650 \\
+12 & 18 & 21 & 11 & 0.444 \\
+\hline
+\textbf{Mean} & \textbf{20.83} & \textbf{14.25} & \textbf{8.33} & \textbf{0.6710} \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Примеры биологических признаков}
+
+\begin{table}[htbp]
+\centering
+\caption{Биологические признаки для фрагмента E. coli}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Признак} & \textbf{Значение} \\
+\hline
+GC-content & 0.508 \\
+Entropy & 1.982 \\
+Aromaticity & 0.089 \\
+Instability index & 42.3 \\
+Isoelectric point & 6.8 \\
+GRAVY & -0.234 \\
+Molecular weight & 65432.1 Da \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Control profile для фрагмента E. coli}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Параметр} & \textbf{Значение} \\
+\hline
+Tempo & 0.62 \\
+Density & 0.54 \\
+Harmony change & 0.71 \\
+Register & 0.48 \\
+Complexity & 0.66 \\
+Mode & 0.52 \\
+\hline
+\end{tabular}
+\end{table}

@@ -1,0 +1,134 @@
+% Кодировка и язык
+\usepackage[english,russian]{babel}
+
+% Шрифт
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+\setmainfont{Times New Roman}
+\setmonofont{Consolas}
+
+% Поля
+\usepackage[left=30mm,right=10mm,top=20mm,bottom=20mm]{geometry}
+
+% Полуторный межстрочный интервал
+\renewcommand{\baselinestretch}{1.4}
+
+% Абзацный отступ 1.25см
+\usepackage{indentfirst}
+\setlength\parindent{12.5mm}
+
+% Для использования \dotuline и \uline
+\usepackage[dot]{dashundergaps}
+\usepackage{ulem}
+
+% Гиперссылки
+\usepackage[colorlinks=false,unicode=true,hidelinks]{hyperref}
+
+% Картинки
+\usepackage{graphicx}
+\graphicspath{{../results/thesis_artifacts/}}
+
+% Таблицы
+\usepackage{multirow}
+\usepackage{longtable}
+
+% Листинги
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+% Подписи к картинкам, таблицам и листингам
+\usepackage{caption}
+\usepackage{float}
+\usepackage{adjustbox}
+\captionsetup[figure]{name={Рисунок},labelsep=endash}
+\captionsetup[table]{name={Таблица},labelsep=endash,justification=raggedright,singlelinecheck=false}
+\captionsetup[lstlisting]{labelsep=endash}
+
+% Математика
+\usepackage{amsthm,amssymb,amsmath,mathtools}
+
+% Перечисления
+\usepackage{enumitem}
+\makeatletter
+\renewcommand{\@listI}
+{
+    \leftmargin=25pt
+    \rightmargin=0pt
+    \labelsep=5pt
+    \labelwidth=20pt
+    \itemindent=0pt
+    \listparindent=0pt
+    \topsep=0pt plus 2pt minus 4pt
+    \partopsep=0pt plus 1pt minus 1pt
+    \parsep=0pt plus 1pt
+    \itemsep=\parsep
+}
+\makeatother
+
+% Переносы
+\sloppy
+\hyphenpenalty=1000
+\clubpenalty=10000
+\widowpenalty=10000
+
+% Поиск по pdf
+\usepackage{cmap}
+
+% Сравнение длин строк
+\usepackage{ifthen}
+\usepackage{xstring}
+
+% Подсчет количества иллюстраций, таблиц и т.д.
+\usepackage[figure,table]{totalcount}
+\usepackage{totcount}
+\regtotcounter{page}
+\newtotcounter{citenum}
+\def\oldcite{}
+\let\oldcite=\bibcite
+\def\bibcite{\stepcounter{citenum}\oldcite}
+\newtotcounter{appendixnum}
+
+% Содержание
+\usepackage{tocloft}
+\renewcommand{\cfttoctitlefont}{\normalfont\bfseries\MakeUppercase}
+\renewcommand{\cftbeforetoctitleskip}{-1em}
+\renewcommand{\cftaftertoctitleskip}{1pt}
+
+% Главы, разделы, подразделы
+\usepackage[explicit]{titlesec}
+\titleformat{\chapter}{\centering\normalfont\bfseries}{\thechapter}{10pt}{\MakeUppercase{#1}}
+\titleformat{name=\chapter,numberless}{\centering\normalfont\bfseries}{}{0pt}{\MakeUppercase{#1}}
+\titleformat{\section}{\normalfont\bfseries}{\thesection}{10pt}{#1}
+\titleformat{\subsection}{\normalfont}{\thesubsection}{10pt}{#1}
+\titlespacing*{\chapter}{0pt}{-12pt}{11pt}
+\titlespacing*{\section}{\parindent}{15pt}{10pt}
+\titlespacing*{\subsection}{\parindent}{15pt}{10pt}
+
+% Библиография
+\makeatletter
+\renewcommand{\@biblabel}[1]{#1.}
+\makeatother
+\renewcommand{\bibname}{Список использованных источников и литературы}

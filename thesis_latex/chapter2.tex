@@ -1,0 +1,256 @@
+\chapter{ПРОЕКТИРОВАНИЕ И РЕАЛИЗАЦИЯ СИСТЕМЫ}
+
+\section{Техническое задание}
+
+\subsection{Назначение разработки}
+
+Система BioSonification предназначена для генерации символической музыки на основе биологических последовательностей. Система должна преобразовывать FASTA-файлы в двухдорожечные MIDI-композиции, используя биологические признаки как управляющий сигнал.
+
+\subsection{Функциональные требования}
+
+\begin{enumerate}
+\item Чтение FASTA-файлов с DNA, RNA и protein последовательностями
+\item Фрагментация длинных последовательностей
+\item Извлечение биологических признаков (состав, энтропия, белковые свойства)
+\item Загрузка и структурирование MIDI-корпуса
+\item Обучение модели гармонии
+\item Обучение модели мелодии
+\item Генерация двухдорожечного MIDI
+\item Сохранение метаданных генерации
+\end{enumerate}
+
+\subsection{Нефункциональные требования}
+
+\begin{itemize}
+\item Обучение на GPU NVIDIA RTX 2060 6GB
+\item Поддержка mixed precision для экономии памяти
+\item Воспроизводимость результатов (фиксированный seed)
+\item Сохранение checkpoint для повторного использования
+\end{itemize}
+
+\section{Архитектура системы}
+
+Система построена по модульному принципу и включает следующие компоненты:
+
+\begin{itemize}
+\item \textbf{Биологический энкодер} — извлечение признаков из FASTA
+\item \textbf{Музыкальный процессор} — структурирование MIDI-корпуса
+\item \textbf{Pairing модуль} — сопоставление биологических и музыкальных сегментов
+\item \textbf{Harmony model} — генерация аккордовой сетки
+\item \textbf{Melody model} — генерация мелодии поверх гармонии
+\item \textbf{MIDI renderer} — создание выходного файла
+\end{itemize}
+
+% Общая схема пайплайна представлена на рисунке~\ref{fig:architecture}.
+
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=0.9\textwidth]{pipeline_architecture.png}
+% \caption{Архитектура системы BioSonification}
+% \label{fig:architecture}
+% \end{figure}
+
+\section{Биологический энкодер}
+
+Модуль \texttt{bio\_music\_pipeline/v2/bio.py} реализует извлечение признаков из биологических последовательностей.
+
+\subsection{Поддерживаемые типы последовательностей}
+
+Система автоматически определяет тип последовательности:
+\begin{itemize}
+\item DNA — содержит A, C, G, T
+\item RNA — содержит A, C, G, U
+\item Protein — содержит аминокислоты
+\end{itemize}
+
+\subsection{Фрагментация}
+
+Длинные последовательности разбиваются на фрагменты с параметрами:
+\begin{itemize}
+\item \texttt{fragment\_length} = 1800 bp
+\item \texttt{fragment\_stride} = 900 bp
+\item \texttt{max\_fragments\_per\_record} = 24
+\end{itemize}
+
+\subsection{Извлекаемые признаки}
+
+\textbf{Нуклеотидные признаки:}
+\begin{itemize}
+\item Частоты оснований (A, C, G, T/U)
+\item Энтропия последовательности
+\item GC-content
+\item GC/AT skew
+\item Кодоновая энтропия
+\item k-mer статистика (k=1,2,3)
+\end{itemize}
+
+\textbf{Белковые признаки:}
+\begin{itemize}
+\item Перевод через longest ORF
+\item Ароматичность (Biopython ProtParam)
+\item Индекс нестабильности
+\item Изоэлектрическая точка
+\item GRAVY (гидрофобность)
+\item Молекулярная масса
+\item Состав аминокислот
+\end{itemize}
+
+\subsection{Выходные данные}
+
+Энкодер возвращает структуру \texttt{BioEncodingResult}:
+\begin{itemize}
+\item \texttt{vector} — 256-мерный embedding
+\item \texttt{control\_profile} — 6-мерный профиль (tempo, density, harmony change, register, complexity, mode)
+\item \texttt{tonic\_pc\_hint} — подсказка тонального центра
+\end{itemize}
+
+\section{Музыкальное представление}
+
+Модуль \texttt{structured\_music.py} реализует структурированное представление музыки.
+
+\subsection{Структуры данных}
+
+\textbf{HarmonyBar} — аккорд в такте:
+\begin{itemize}
+\item \texttt{bar\_index} — номер такта
+\item \texttt{root\_pc} — основной тон (0-11)
+\item \texttt{quality} — качество аккорда (maj, min, dim, aug, dom7, maj7, min7, sus2, sus4, power)
+\item \texttt{hold} — продолжение предыдущего аккорда
+\end{itemize}
+
+\textbf{MelodyEvent} — событие мелодии:
+\begin{itemize}
+\item \texttt{bar\_index} — номер такта
+\item \texttt{position\_step} — позиция в такте
+\item \texttt{duration\_steps} — длительность
+\item \texttt{relative\_pc} — высота относительно аккорда
+\item \texttt{octave} — октава
+\end{itemize}
+
+\subsection{Токенизация}
+
+Система использует два токенизатора:
+\begin{itemize}
+\item \texttt{HarmonyTokenizer} — кодирует последовательность аккордов
+\item \texttt{MelodyTokenizer} — кодирует мелодические события с учётом гармонии
+\end{itemize}
+
+\section{Pairing биологических и музыкальных сегментов}
+
+Модуль \texttt{structured\_pairing.py} сопоставляет биологические фрагменты с музыкальными сегментами через пространство дескрипторов.
+
+\subsection{Музыкальные дескрипторы}
+
+Для каждого музыкального сегмента вычисляются:
+\begin{itemize}
+\item Темп (BPM)
+\item Плотность нот на такт
+\item Частота смены аккордов
+\item Средний регистр
+\item Сложность гармонии
+\item Модальность (мажор/минор)
+\end{itemize}
+
+\subsection{Калибровка}
+
+Биологический \texttt{control\_profile} калибруется под распределение музыкального корпуса, чтобы значения попадали в реалистичный диапазон.
+
+\subsection{Top-k matching}
+
+Для каждого биологического фрагмента подбираются k=5 ближайших музыкальных сегментов по евклидову расстоянию в пространстве дескрипторов.
+
+\section{Нейросетевая модель}
+
+Модуль \texttt{structured\_model.py} реализует \texttt{BioConditionedSequenceModel} — autoregressive Transformer с bio conditioning.
+
+\subsection{Архитектура}
+
+Параметры актуальной модели, используемой веб-интерфейсом:
+\begin{itemize}
+\item \texttt{d\_model} = 384
+\item \texttt{n\_layers} = 6
+\item \texttt{n\_heads} = 6
+\item \texttt{dim\_feedforward} = 1536
+\item \texttt{dropout} = 0.20
+\item \texttt{bio\_memory\_tokens} = 4
+\end{itemize}
+
+\subsection{Bio conditioning}
+
+Биологический вектор проецируется в пространство модели через MLP и представляется как memory tokens, которые участвуют в cross-attention.
+
+\subsection{Использование модели}
+
+Одна и та же архитектура используется дважды:
+\begin{enumerate}
+\item Как harmony model — генерирует последовательность аккордов
+\item Как melody model — генерирует мелодию с harmony prefix
+\end{enumerate}
+
+\section{Процесс обучения}
+
+\subsection{Конфигурация}
+
+Актуальная модель веб-интерфейса использует конфиг \texttt{pipeline\_v2\_medium\_rtx2060\_fast.json}:
+\begin{itemize}
+\item Batch size: 8
+\item Gradient accumulation: 4 (effective batch size 32)
+\item Learning rate: 0.0003
+\item Weight decay: 0.05
+\item Mixed precision: enabled
+\item Optimizer: AdamW
+\item Segment length: 4 такта
+\end{itemize}
+
+\subsection{Данные}
+
+\begin{itemize}
+\item Bio sequences/fragments: 3746
+\item Music segments: 25940 (POP909)
+\item Train pairs: 15925
+\item Validation pairs: 1870
+\item Test pairs: 935
+\end{itemize}
+
+\subsection{Обучение harmony model}
+
+\begin{itemize}
+\item Epochs: 10
+\item Best validation loss: 0.1454 (epoch 2)
+\item Test loss: 0.1389
+\item Training time: около 21 минуты
+\end{itemize}
+
+\subsection{Обучение melody model}
+
+\begin{itemize}
+\item Epochs: 15
+\item Best validation loss: 0.1566 (epoch 7)
+\item Test loss: 0.1650
+\item Training time: около 31 минуты
+\end{itemize}
+
+\section{Реализация}
+
+Проект реализован на Python 3.10+ с использованием:
+\begin{itemize}
+\item PyTorch 2.0+ — нейросетевой фреймворк
+\item Biopython — биоинформатические инструменты
+\item music21 — музыкальный анализ
+\item mido — работа с MIDI
+\item Flask — веб-интерфейс
+\end{itemize}
+
+Основные модули:
+\begin{itemize}
+\item \texttt{train\_bio\_music\_v2.py} — CLI обучения
+\item \texttt{generate\_from\_fasta\_v2\_fragmented.py} — CLI генерации
+\item \texttt{bio\_music\_pipeline/v2/} — основная логика
+\item \texttt{web/app.py} — веб-интерфейс
+\end{itemize}
+
+\section*{Выводы по главе 2}
+
+Во второй главе описано проектирование и реализация системы BioSonification. Разработана иерархическая архитектура Bio→Harmony→Melody. Реализованы модули извлечения биологических признаков, структурирования музыки, pairing и нейросетевой генерации.
+
+Система обучена на корпусе POP909 и геномных данных RefSeq. Актуальная модель веб-интерфейса показала validation loss 0.1454 для гармонии и 0.1566 для мелодии. Обучение выполнено на GPU RTX 2060 6GB с использованием mixed precision.

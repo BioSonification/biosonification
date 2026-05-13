@@ -70,5 +70,5 @@ data/fasta
 
 .* 
 !.github/
-thesis*/
+# thesis*/
 coverage.xml
