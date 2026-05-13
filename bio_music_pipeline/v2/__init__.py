@@ -11,12 +11,12 @@ from .config import (
     load_v2_config,
     v2_config_from_dict,
 )
+from .dataset_report import DatasetReportConfig, build_dataset_report
 from .evaluate import (
     StructuredEvaluationConfig,
     compute_structured_midi_metrics,
     run_structured_evaluation,
 )
-from .dataset_report import DatasetReportConfig, build_dataset_report
 from .structured_generate import generate_structured_music_from_fasta, generate_structured_music_from_fasta_fragmented
 from .structured_model import BioConditionedSequenceModel
 from .structured_music import (

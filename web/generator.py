@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import re
 import uuid
+from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-PROJECT_ROOT = Path(__file__).parent.parent
-
 from bio_music_pipeline.v2 import generate_structured_music_from_fasta_fragmented
+
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class FASTAValidationError(Exception):
@@ -36,7 +36,7 @@ class BioMusicGenerator:
 
         if not self.config_path.exists():
             self._error = f"Config file not found: {self.config_path}"
-        if not self.checkpoint_path.exists():
+        elif not self.checkpoint_path.exists():
             self._error = (
                 f"Structured checkpoint not found: {self.checkpoint_path}. "
                 "Train the v2 pipeline first or set BIOSONIFICATION_STRUCTURED_CHECKPOINT."
@@ -88,9 +88,7 @@ class BioMusicGenerator:
         if not fasta_text.startswith(">"):
             sequence = re.sub(r"[^A-Za-z*]", "", fasta_text).upper()
             if len(sequence) < 90:
-                raise FASTAValidationError(
-                    f"Sequence too short: {len(sequence)} symbols after cleaning (minimum 90)."
-                )
+                raise FASTAValidationError(f"Sequence too short: {len(sequence)} symbols after cleaning (minimum 90).")
             return "User Sequence", sequence
 
         records = []
@@ -129,13 +127,9 @@ class BioMusicGenerator:
         if len(cleaned_records) > 1:
             header = f"{header} (record 1/{len(cleaned_records)})"
         if len(sequence) < 90:
-            raise FASTAValidationError(
-                f"Sequence too short: {len(sequence)} symbols after cleaning (minimum 90)."
-            )
+            raise FASTAValidationError(f"Sequence too short: {len(sequence)} symbols after cleaning (minimum 90).")
         if len(sequence) > 50000:
-            raise FASTAValidationError(
-                f"Sequence too long: {len(sequence)} symbols (maximum 50000)."
-            )
+            raise FASTAValidationError(f"Sequence too long: {len(sequence)} symbols (maximum 50000).")
         return header, sequence
 
     def generate(self, fasta_text: str, output_dir: Optional[str] = None) -> Dict:

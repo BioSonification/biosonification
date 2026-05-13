@@ -2,26 +2,23 @@
 
 from __future__ import annotations
 
-from contextlib import nullcontext
-from dataclasses import asdict
 import json
 import pickle
 import random
-from pathlib import Path
 import time
+from contextlib import nullcontext
+from dataclasses import asdict
+from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from .bio import BioEncodingResult, BiologicalSequenceEncoder
-from .config import V2PipelineConfig, load_v2_config
+from .bio import BiologicalSequenceEncoder
+from .config import load_v2_config
 from .structured_model import BioConditionedSequenceModel
 from .structured_music import (
-    HarmonyBar,
-    HarmonyTokenizer,
-    MelodyTokenizer,
     load_structured_music_corpus,
     render_harmony_and_melody_to_score,
 )
@@ -47,8 +44,8 @@ def _split_items(items: Sequence, val_fraction: float, test_fraction: float, see
     n_test = max(1, int(len(indices) * test_fraction)) if len(indices) >= 3 else 0
     n_val = max(1, int(len(indices) * val_fraction)) if len(indices) - n_test >= 3 else 0
     test_indices = set(indices[:n_test])
-    val_indices = set(indices[n_test:n_test + n_val])
-    train_indices = set(indices[n_test + n_val:])
+    val_indices = set(indices[n_test : n_test + n_val])
+    train_indices = set(indices[n_test + n_val :])
     if not train_indices:
         train_indices = set(indices)
         val_indices = set()
@@ -66,7 +63,7 @@ def _device_from_config(device_name: str) -> torch.device:
 
 
 def _apply_calibration(profile: np.ndarray, calibration: Dict[str, np.ndarray]) -> np.ndarray:
-    calibrated = ((profile - calibration["bio_mean"]) / (calibration["bio_std"] + 1e-6))
+    calibrated = (profile - calibration["bio_mean"]) / (calibration["bio_std"] + 1e-6)
     calibrated = calibrated * calibration["music_std"] + calibration["music_mean"]
     return np.clip(calibrated, 0.0, 1.0).astype(np.float32)
 
@@ -203,13 +200,17 @@ def _to_device(batch: dict, device: torch.device) -> dict:
     }
 
 
-def _evaluate_model(model: BioConditionedSequenceModel, loader: DataLoader, device: torch.device, amp_enabled: bool) -> float:
+def _evaluate_model(
+    model: BioConditionedSequenceModel, loader: DataLoader, device: torch.device, amp_enabled: bool
+) -> float:
     model.eval()
     losses = []
     with torch.no_grad():
         for batch in loader:
             device_batch = _to_device(batch, device)
-            autocast_context = torch.autocast(device_type="cuda", enabled=amp_enabled) if device.type == "cuda" else nullcontext()
+            autocast_context = (
+                torch.autocast(device_type="cuda", enabled=amp_enabled) if device.type == "cuda" else nullcontext()
+            )
             with autocast_context:
                 outputs = model.compute_loss(
                     input_ids=device_batch["input_ids"],
@@ -238,7 +239,11 @@ def _train_model(
     label: str,
 ) -> List[dict]:
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled) if device.type == "cuda" else torch.amp.GradScaler("cpu", enabled=False)
+    scaler = (
+        torch.amp.GradScaler("cuda", enabled=amp_enabled)
+        if device.type == "cuda"
+        else torch.amp.GradScaler("cpu", enabled=False)
+    )
     history: List[dict] = []
     best_val_loss = float("inf")
     patience_counter = 0
@@ -250,7 +255,9 @@ def _train_model(
         running_losses: List[float] = []
         for batch_index, batch in enumerate(train_loader):
             device_batch = _to_device(batch, device)
-            autocast_context = torch.autocast(device_type="cuda", enabled=amp_enabled) if device.type == "cuda" else nullcontext()
+            autocast_context = (
+                torch.autocast(device_type="cuda", enabled=amp_enabled) if device.type == "cuda" else nullcontext()
+            )
             with autocast_context:
                 outputs = model.compute_loss(
                     input_ids=device_batch["input_ids"],
@@ -365,7 +372,9 @@ def train_structured_pipeline(
     val_pairs, _ = build_structured_paired_dataset(val_bio, val_music, config.pairing)
     test_pairs, _ = build_structured_paired_dataset(test_bio, test_music, config.pairing)
     save_structured_pairing_artifacts(str(output_dir / "pairing"), train_pairs, train_calibration)
-    pin_memory = bool(config.training.device == "cuda" or (config.training.device == "auto" and torch.cuda.is_available()))
+    pin_memory = bool(
+        config.training.device == "cuda" or (config.training.device == "auto" and torch.cuda.is_available())
+    )
 
     harmony_train_loader = _build_loader(
         _build_harmony_records(train_pairs),

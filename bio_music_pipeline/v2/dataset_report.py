@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import numpy as np
 
+from ..utils.progress_logger import ProgressLogger
 from .bio import BiologicalSequenceEncoder
 from .config import V2PipelineConfig, load_v2_config
 from .corpus import iter_score_files
 from .structured_music import load_structured_music_corpus
-from ..utils.progress_logger import ProgressLogger
 
 try:
     from Bio import SeqIO
@@ -77,7 +77,9 @@ def _fasta_records(path: str, max_preview: int) -> Dict[str, Any]:
     # Handle both single file and directory
     if fasta_path.is_dir():
         # Directory with multiple FASTA files
-        fasta_files = sorted(fasta_path.glob("*.fna")) + sorted(fasta_path.glob("*.fa")) + sorted(fasta_path.glob("*.fasta"))
+        fasta_files = (
+            sorted(fasta_path.glob("*.fna")) + sorted(fasta_path.glob("*.fa")) + sorted(fasta_path.glob("*.fasta"))
+        )
         _log(f"Found {len(fasta_files)} FASTA files in directory")
 
         pbar = _logger.progress_bar(fasta_files, desc="Loading FASTA files") if _logger else fasta_files
@@ -142,7 +144,9 @@ def _bio_fragment_summary(config: V2PipelineConfig) -> Dict[str, Any]:
         "fragment_count": len(encodings),
         "sequence_types": type_counts,
         "cleaned_length_summary": _summary([len(item.cleaned_sequence) for item in encodings]),
-        "control_profile_mean": [float(value) for value in np.mean([item.control_profile for item in encodings], axis=0)],
+        "control_profile_mean": [
+            float(value) for value in np.mean([item.control_profile for item in encodings], axis=0)
+        ],
     }
 
 
@@ -169,7 +173,8 @@ def _music_file_manifest(config: V2PipelineConfig) -> Dict[str, Any]:
         "use_music21_corpus_fallback": config.music.use_music21_corpus_fallback,
         "music21_composers": list(config.music.music21_composers),
         "fallback_note": (
-            "Built-in fallback is intended for demos/smoke tests. Use an external licensed polyphonic MIDI corpus for serious experiments."
+            "Built-in fallback is intended for demos/smoke tests. "
+            "Use an external licensed polyphonic MIDI corpus for serious experiments."
             if source_kind.startswith("music21")
             else ""
         ),
@@ -258,7 +263,9 @@ def _write_markdown(report: Dict[str, Any], output_path: Path) -> None:
             "",
             "## Interpretation",
             "",
-            "The built-in `music21` fallback is suitable for demos and smoke tests, not as a broad experimental corpus. Serious runs should declare an external licensed MIDI corpus in `music.midi_dirs` and keep this report with the resulting metrics.",
+            "The built-in `music21` fallback is suitable for demos and smoke tests, "
+            "not as a broad experimental corpus. Serious runs should declare an external "
+            "licensed MIDI corpus in `music.midi_dirs` and keep this report with the resulting metrics.",
             "",
         ]
     )

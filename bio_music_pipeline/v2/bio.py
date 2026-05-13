@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import math
+import re
 from collections import Counter
 from dataclasses import dataclass
-import math
 from pathlib import Path
-import re
 from typing import Dict, List, Optional, Sequence
 
 import numpy as np
@@ -75,8 +75,7 @@ class BiologicalSequenceEncoder:
         self.config = config or BioEncoderConfig()
         if SeqIO is None or ProteinAnalysis is None or Seq is None:
             raise ImportError(
-                "Biopython is required for the v2 sequence encoder. "
-                "Install it before running the pipeline."
+                "Biopython is required for the v2 sequence encoder. " "Install it before running the pipeline."
             )
         self._esm_tokenizer = None
         self._esm_model = None
@@ -127,7 +126,7 @@ class BiologicalSequenceEncoder:
                 fragment_id = f"{record_id}::frag{fragment_index:03d}"
                 try:
                     results.append(self.encode_sequence(fragment, sequence_id=fragment_id))
-                except ValueError as e:
+                except ValueError:
                     # Skip fragments that are too short after cleaning
                     skipped_count += 1
                     continue
@@ -150,7 +149,7 @@ class BiologicalSequenceEncoder:
         fragments: List[str] = []
         stride = max(self.config.min_sequence_length, self.config.fragment_stride)
         for start in range(0, len(sequence), stride):
-            fragment = sequence[start:start + fragment_length]
+            fragment = sequence[start : start + fragment_length]
             if len(fragment) < self.config.min_sequence_length:
                 break
             fragments.append(fragment)
@@ -188,7 +187,7 @@ class BiologicalSequenceEncoder:
     def _kmer_distribution(self, sequence: str, k: int, alphabet: Sequence[str]) -> np.ndarray:
         if len(sequence) < k:
             return np.zeros(len(alphabet) ** k, dtype=np.float32)
-        counts = Counter(sequence[index:index + k] for index in range(len(sequence) - k + 1))
+        counts = Counter(sequence[index : index + k] for index in range(len(sequence) - k + 1))
         kmers: List[str] = [""]
         for _ in range(k):
             kmers = [prefix + letter for prefix in kmers for letter in alphabet]
@@ -206,7 +205,7 @@ class BiologicalSequenceEncoder:
             candidate = ""
             in_orf = False
             for index in range(frame, len(dna_sequence) - 2, 3):
-                codon = dna_sequence[index:index + 3]
+                codon = dna_sequence[index : index + 3]
                 if len(codon) < 3:
                     continue
                 if not in_orf and codon == "ATG":
@@ -295,7 +294,6 @@ class BiologicalSequenceEncoder:
         if self._esm_model is not None and self._esm_tokenizer is not None:
             return
         try:
-            import torch
             from transformers import AutoTokenizer, EsmModel
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise ImportError(
@@ -363,9 +361,9 @@ class BiologicalSequenceEncoder:
         counts = Counter(structure)
         paired_fraction = (counts.get("(", 0) + counts.get(")", 0)) / max(len(structure), 1)
         loop_fraction = counts.get(".", 0) / max(len(structure), 1)
-        transitions = sum(
-            structure[index] != structure[index - 1] for index in range(1, len(structure))
-        ) / max(len(structure) - 1, 1)
+        transitions = sum(structure[index] != structure[index - 1] for index in range(1, len(structure))) / max(
+            len(structure) - 1, 1
+        )
         structure_entropy = _safe_entropy(counts.values()) / np.log2(max(len(counts), 2))
         return {
             "rna_mfe": _normalized(float(mfe), -350.0, 0.0),
@@ -383,13 +381,11 @@ class BiologicalSequenceEncoder:
         gc_content = gc_count / total
         entropy = _safe_entropy(counts.values()) / np.log2(len(alphabet))
         gc_skew = (counts.get("G", 0) - counts.get("C", 0)) / max(gc_count, 1)
-        at_skew = (
-            counts.get("A", 0) - counts.get("T", 0) - counts.get("U", 0)
-        ) / max(at_count, 1)
+        at_skew = (counts.get("A", 0) - counts.get("T", 0) - counts.get("U", 0)) / max(at_count, 1)
         codons = [
-            sequence[index:index + 3]
+            sequence[index : index + 3]
             for index in range(0, len(sequence) - 2, 3)
-            if len(sequence[index:index + 3]) == 3
+            if len(sequence[index : index + 3]) == 3
         ]
         codon_counts = Counter(codons)
         periodicity = 0.0
@@ -398,7 +394,9 @@ class BiologicalSequenceEncoder:
             if numeric.size > 1:
                 periodicity = float(np.std(np.diff(numeric))) / max(len(alphabet) - 1, 1)
         return {
-            "seq_length_norm": _normalized(len(sequence), self.config.min_sequence_length, self.config.max_sequence_length),
+            "seq_length_norm": _normalized(
+                len(sequence), self.config.min_sequence_length, self.config.max_sequence_length
+            ),
             "gc_content": float(gc_content),
             "entropy": float(entropy),
             "gc_skew": float(gc_skew),
@@ -412,7 +410,7 @@ class BiologicalSequenceEncoder:
         feature_names = sorted(feature_map)
         values = np.array([feature_map[name] for name in feature_names], dtype=np.float32)
         if values.size >= self.config.embedding_dim:
-            vector = values[:self.config.embedding_dim]
+            vector = values[: self.config.embedding_dim]
         else:
             summary = np.array(
                 [

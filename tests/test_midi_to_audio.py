@@ -2,9 +2,7 @@
 Tests for web.midi_to_audio module.
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from web.midi_to_audio import (
     check_audio_synthesizer,

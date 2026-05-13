@@ -10,7 +10,7 @@ EXAMPLES = [
         "bars": 9,
         "duration_seconds": 18,
         "genome_size": "4.6 MB",
-        "icon": "🦠"
+        "icon": "🦠",
     },
     {
         "id": "yeast",
@@ -21,7 +21,7 @@ EXAMPLES = [
         "bars": 9,
         "duration_seconds": 18,
         "genome_size": "12 MB",
-        "icon": "🍄"
+        "icon": "🍄",
     },
     {
         "id": "drosophila",
@@ -32,7 +32,7 @@ EXAMPLES = [
         "bars": 9,
         "duration_seconds": 18,
         "genome_size": "141 MB",
-        "icon": "🪰"
+        "icon": "🪰",
     },
     {
         "id": "worm",
@@ -43,7 +43,7 @@ EXAMPLES = [
         "bars": 9,
         "duration_seconds": 18,
         "genome_size": "99 MB",
-        "icon": "🪱"
+        "icon": "🪱",
     },
     {
         "id": "arabidopsis",
@@ -54,7 +54,7 @@ EXAMPLES = [
         "bars": 9,
         "duration_seconds": 18,
         "genome_size": "117 MB",
-        "icon": "🌱"
+        "icon": "🌱",
     },
     {
         "id": "drosophila_long",
@@ -65,6 +65,6 @@ EXAMPLES = [
         "bars": 32,
         "duration_seconds": 64,
         "genome_size": "141 MB",
-        "icon": "🪰"
-    }
+        "icon": "🪰",
+    },
 ]

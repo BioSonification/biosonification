@@ -4,29 +4,28 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
 import json
-from pathlib import Path
 import random
 import sys
+from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from bio_music_pipeline.v2.config import MusicDataConfig  # noqa: E402
 from bio_music_pipeline.v2.evaluate import (  # noqa: E402
     _aggregate,
     _random_baseline_sample,
     compute_structured_midi_metrics,
 )
-from bio_music_pipeline.v2.config import MusicDataConfig  # noqa: E402
 from bio_music_pipeline.v2.structured_generate import (  # noqa: E402
     generate_structured_music_from_fasta,
     generate_structured_music_from_fasta_fragmented,
 )
 from web.generator import BioMusicGenerator  # noqa: E402
-
 
 METRIC_NAMES = (
     "melody_note_count",
@@ -166,7 +165,7 @@ def _loss_delta(current: Dict[str, Any], previous: Dict[str, Any]) -> Dict[str, 
 
 
 def _wrap_sequence(sequence: str, width: int = 80) -> str:
-    return "\n".join(sequence[index:index + width] for index in range(0, len(sequence), width))
+    return "\n".join(sequence[index : index + width] for index in range(0, len(sequence), width))
 
 
 def _write_evaluation_fragment_fasta(config: ModelComparisonConfig, output_path: Path) -> Path:
@@ -177,7 +176,7 @@ def _write_evaluation_fragment_fasta(config: ModelComparisonConfig, output_path:
     for source_record in SeqIO.parse(config.fasta, "fasta"):
         sequence = str(source_record.seq).upper()
         for start in range(0, len(sequence), config.eval_fragment_stride):
-            fragment = sequence[start:start + config.eval_fragment_length]
+            fragment = sequence[start : start + config.eval_fragment_length]
             if len(fragment) < config.eval_fragment_length:
                 continue
             fragment_index = len(fragments)
@@ -213,7 +212,9 @@ def _seed_generation(seed: int) -> None:
         pass
 
 
-def _generate_current_web_samples(config: ModelComparisonConfig, midi_dir: Path, metadata_dir: Path) -> list[Dict[str, Any]]:
+def _generate_current_web_samples(
+    config: ModelComparisonConfig, midi_dir: Path, metadata_dir: Path
+) -> list[Dict[str, Any]]:
     results = []
     for record_index in range(max(1, config.max_records)):
         midi_path = midi_dir / f"current_web_record_{record_index:03d}.mid"
@@ -245,7 +246,9 @@ def _generate_current_web_samples(config: ModelComparisonConfig, midi_dir: Path,
     return results
 
 
-def _generate_previous_samples(config: ModelComparisonConfig, midi_dir: Path, metadata_dir: Path, count: int) -> list[Dict[str, Any]]:
+def _generate_previous_samples(
+    config: ModelComparisonConfig, midi_dir: Path, metadata_dir: Path, count: int
+) -> list[Dict[str, Any]]:
     results = []
     for record_index in range(max(1, count)):
         midi_path = midi_dir / f"previous_thesis_record_{record_index:03d}.mid"
@@ -591,8 +594,7 @@ def run_model_comparison(config: ModelComparisonConfig) -> Dict[str, Any]:
     rng = random.Random(config.seed)
     music_config = MusicDataConfig()
     baseline_results = [
-        _random_baseline_sample(index, midi_dir, music_config, rng)
-        for index in range(max(1, len(current_results)))
+        _random_baseline_sample(index, midi_dir, music_config, rng) for index in range(max(1, len(current_results)))
     ]
 
     current_aggregate = _aggregate(current_results)
