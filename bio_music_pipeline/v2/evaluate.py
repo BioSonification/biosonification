@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import json
 import math
-from pathlib import Path
 import random
+from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 
 from .config import MusicDataConfig
 from .structured_generate import generate_structured_music_from_fasta
-from .structured_music import HarmonyBar, QUALITY_INTERVALS, render_harmony_and_melody_to_score
+from .structured_music import QUALITY_INTERVALS, HarmonyBar, render_harmony_and_melody_to_score
 
 try:
     from music21 import chord, converter, note
@@ -51,8 +51,8 @@ def _self_similarity(pitches: Sequence[int], window: int = 8) -> float:
     pcs = [pitch % 12 for pitch in pitches]
     scores = []
     for start in range(0, len(pcs) - window * 2 + 1):
-        left = pcs[start:start + window]
-        right = pcs[start + window:start + window * 2]
+        left = pcs[start : start + window]
+        right = pcs[start + window : start + window * 2]
         scores.append(sum(a == b for a, b in zip(left, right)) / window)
     return _safe_mean(scores)
 
@@ -165,9 +165,7 @@ def compute_structured_midi_metrics(midi_path: str, metadata: Optional[Dict[str,
     metadata = metadata or {}
     harmony_bars = _metadata_harmony_bars(metadata)
     chord_change_rate = (
-        _chord_change_rate(harmony_bars)
-        if harmony_bars
-        else _chord_change_rate_from_midi(harmony_chords)
+        _chord_change_rate(harmony_bars) if harmony_bars else _chord_change_rate_from_midi(harmony_chords)
     )
     chord_tone_ratio = (
         _chord_tone_ratio(melody_pitches, melody_offsets, harmony_bars)
@@ -269,14 +267,17 @@ def _write_markdown_report(report: Dict[str, Any], output_path: Path) -> None:
         [
             "## Interpretation Limits",
             "",
-            "These metrics validate MIDI structure and compare simple musical descriptors. They do not prove a causal relationship between biological sequences and music.",
+            "These metrics validate MIDI structure and compare simple musical descriptors. "
+            "They do not prove a causal relationship between biological sequences and music.",
             "",
         ]
     )
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _random_baseline_sample(index: int, output_dir: Path, music_config: MusicDataConfig, rng: random.Random) -> Dict[str, Any]:
+def _random_baseline_sample(
+    index: int, output_dir: Path, music_config: MusicDataConfig, rng: random.Random
+) -> Dict[str, Any]:
     qualities = ["maj", "min", "dom7", "maj7", "min7", "sus4"]
     harmony_bars = []
     previous_root = rng.randrange(12)
@@ -310,8 +311,7 @@ def _random_baseline_sample(index: int, output_dir: Path, music_config: MusicDat
     metadata = {
         "tonic_pc_hint": 0,
         "generated_harmony_bars": [
-            {"root_pc": bar.root_pc, "quality": bar.quality, "hold": bar.hold}
-            for bar in harmony_bars
+            {"root_pc": bar.root_pc, "quality": bar.quality, "hold": bar.hold} for bar in harmony_bars
         ],
     }
     score = render_harmony_and_melody_to_score(harmony_bars, events, tempo_bpm=96.0, config=music_config)
@@ -364,8 +364,7 @@ def run_structured_evaluation(config: StructuredEvaluationConfig) -> Dict[str, A
     rng = random.Random(config.seed)
     music_config = MusicDataConfig()
     baseline_results = [
-        _random_baseline_sample(index, midi_dir, music_config, rng)
-        for index in range(max(1, len(current_results)))
+        _random_baseline_sample(index, midi_dir, music_config, rng) for index in range(max(1, len(current_results)))
     ]
 
     report = {

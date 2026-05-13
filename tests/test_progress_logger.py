@@ -4,8 +4,6 @@ import logging
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from bio_music_pipeline.utils.progress_logger import ProgressLogger
 
 

@@ -2,11 +2,9 @@
 Tests for web.generator module.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
-from web.generator import BioMusicGenerator, FASTAValidationError
+from web.generator import BioMusicGenerator
 
 
 def test_generator_initialization():
@@ -27,11 +25,7 @@ def test_generator_initialization_with_custom_paths(tmp_path):
     config_path.write_text('{"bio": {}, "music": {}}')
     checkpoint_path.write_text("dummy")
 
-    generator = BioMusicGenerator(
-        config_path=str(config_path),
-        checkpoint_path=str(checkpoint_path),
-        device="cpu"
-    )
+    generator = BioMusicGenerator(config_path=str(config_path), checkpoint_path=str(checkpoint_path), device="cpu")
 
     assert generator.config_path == config_path
     assert generator.checkpoint_path == checkpoint_path
@@ -40,9 +34,7 @@ def test_generator_initialization_with_custom_paths(tmp_path):
 
 def test_generator_error_when_config_missing():
     """Test generator sets error when config file is missing."""
-    generator = BioMusicGenerator(
-        config_path="/nonexistent/config.json"
-    )
+    generator = BioMusicGenerator(config_path="/nonexistent/config.json")
 
     assert generator._error is not None
     assert "Config file not found" in generator._error
@@ -51,9 +43,7 @@ def test_generator_error_when_config_missing():
 def test_generator_error_when_checkpoint_missing():
     """Test generator sets error when checkpoint file is missing."""
     # Use existing config but nonexistent checkpoint
-    generator = BioMusicGenerator(
-        checkpoint_path="/nonexistent/checkpoint.pt"
-    )
+    generator = BioMusicGenerator(checkpoint_path="/nonexistent/checkpoint.pt")
 
     assert generator._error is not None
     assert "checkpoint not found" in generator._error.lower()
@@ -67,10 +57,7 @@ def test_generator_initialize_success(tmp_path):
     config_path.write_text('{"bio": {}, "music": {}}')
     checkpoint_path.write_text("dummy")
 
-    generator = BioMusicGenerator(
-        config_path=str(config_path),
-        checkpoint_path=str(checkpoint_path)
-    )
+    generator = BioMusicGenerator(config_path=str(config_path), checkpoint_path=str(checkpoint_path))
 
     assert generator.initialize() is True
     assert generator.is_ready() is True
@@ -78,9 +65,7 @@ def test_generator_initialize_success(tmp_path):
 
 def test_generator_initialize_failure():
     """Test generator.initialize() returns False when files missing."""
-    generator = BioMusicGenerator(
-        config_path="/nonexistent/config.json"
-    )
+    generator = BioMusicGenerator(config_path="/nonexistent/config.json")
 
     assert generator.initialize() is False
     assert generator.is_ready() is False
@@ -103,11 +88,7 @@ def test_generator_status_payload(tmp_path):
     config_path.write_text('{"bio": {}, "music": {}}')
     checkpoint_path.write_text("dummy")
 
-    generator = BioMusicGenerator(
-        config_path=str(config_path),
-        checkpoint_path=str(checkpoint_path),
-        device="cpu"
-    )
+    generator = BioMusicGenerator(config_path=str(config_path), checkpoint_path=str(checkpoint_path), device="cpu")
 
     payload = generator.status_payload()
 
@@ -118,9 +99,7 @@ def test_generator_status_payload(tmp_path):
 
 def test_generator_get_error():
     """Test generator.get_error() returns error message."""
-    generator = BioMusicGenerator(
-        config_path="/nonexistent/config.json"
-    )
+    generator = BioMusicGenerator(config_path="/nonexistent/config.json")
 
     error = generator.get_error()
     assert error is not None

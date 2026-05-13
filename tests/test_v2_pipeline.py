@@ -6,8 +6,8 @@ import torch
 
 from bio_music_pipeline.v2.bio import BiologicalSequenceEncoder
 from bio_music_pipeline.v2.config import BioEncoderConfig, MusicDataConfig
-from bio_music_pipeline.v2.evaluate import compute_structured_midi_metrics
 from bio_music_pipeline.v2.corpus import bootstrap_music21_corpus
+from bio_music_pipeline.v2.evaluate import compute_structured_midi_metrics
 from bio_music_pipeline.v2.structured_generate import _validate_checkpoint_compatibility
 from bio_music_pipeline.v2.structured_model import BioConditionedSequenceModel
 from bio_music_pipeline.v2.structured_music import (
@@ -177,11 +177,9 @@ def test_web_status_reports_structured_generator(monkeypatch):
             }
 
     monkeypatch.setattr(web_app, "get_generator", lambda: FakeGenerator())
-    monkeypatch.setattr(web_app, "check_audio_synthesizer", lambda: {
-        "midi2audio": False,
-        "fluidsynth": False,
-        "timidity": False
-    })
+    monkeypatch.setattr(
+        web_app, "check_audio_synthesizer", lambda: {"midi2audio": False, "fluidsynth": False, "timidity": False}
+    )
 
     response = web_app.app.test_client().get("/api/status")
     assert response.status_code == 200

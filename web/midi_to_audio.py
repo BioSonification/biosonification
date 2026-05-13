@@ -4,8 +4,8 @@ MIDI to Audio Converter
 Converts MIDI files to WAV audio format using multiple methods with fallback.
 """
 
-import os
 import subprocess
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Optional
 
@@ -97,16 +97,13 @@ def _try_fluidsynth_cli(midi_path: str, wav_path: str, soundfont_path: Optional[
             "-ni",  # no interactive mode
             soundfont_path,
             midi_path,
-            "-F", wav_path,  # output to file
-            "-r", "44100"  # sample rate
+            "-F",
+            wav_path,  # output to file
+            "-r",
+            "44100",  # sample rate
         ]
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
         # Check if output file was created
         if result.returncode == 0 and Path(wav_path).exists() and Path(wav_path).stat().st_size > 0:
@@ -135,19 +132,9 @@ def _try_timidity_cli(midi_path: str, wav_path: str) -> bool:
         Path(wav_path).parent.mkdir(parents=True, exist_ok=True)
 
         # Try timidity command
-        cmd = [
-            "timidity",
-            midi_path,
-            "-Ow",  # output WAV
-            "-o", wav_path
-        ]
+        cmd = ["timidity", midi_path, "-Ow", "-o", wav_path]  # output WAV
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
         # Check if output file was created
         if result.returncode == 0 and Path(wav_path).exists() and Path(wav_path).stat().st_size > 0:
@@ -160,8 +147,7 @@ def _try_timidity_cli(midi_path: str, wav_path: str) -> bool:
         return False
 
 
-def midi_to_wav(midi_path: str, wav_path: str,
-                soundfont_path: Optional[str] = None) -> bool:
+def midi_to_wav(midi_path: str, wav_path: str, soundfont_path: Optional[str] = None) -> bool:
     """
     Convert MIDI to WAV using available methods with fallback.
 
@@ -195,21 +181,13 @@ def midi_to_wav(midi_path: str, wav_path: str,
 
 def _check_midi2audio() -> bool:
     """Check if midi2audio library is available."""
-    try:
-        from midi2audio import FluidSynth
-        return True
-    except ImportError:
-        return False
+    return find_spec("midi2audio") is not None
 
 
 def _check_fluidsynth_cli() -> bool:
     """Check if fluidsynth CLI is available."""
     try:
-        result = subprocess.run(
-            ["fluidsynth", "--version"],
-            capture_output=True,
-            timeout=5
-        )
+        result = subprocess.run(["fluidsynth", "--version"], capture_output=True, timeout=5)
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
@@ -218,11 +196,7 @@ def _check_fluidsynth_cli() -> bool:
 def _check_timidity_cli() -> bool:
     """Check if timidity CLI is available."""
     try:
-        result = subprocess.run(
-            ["timidity", "--version"],
-            capture_output=True,
-            timeout=5
-        )
+        result = subprocess.run(["timidity", "--version"], capture_output=True, timeout=5)
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
@@ -236,9 +210,9 @@ def check_audio_synthesizer() -> dict:
         Dict with availability status for each method
     """
     return {
-        'midi2audio': _check_midi2audio(),
-        'fluidsynth': _check_fluidsynth_cli(),
-        'timidity': _check_timidity_cli(),
+        "midi2audio": _check_midi2audio(),
+        "fluidsynth": _check_fluidsynth_cli(),
+        "timidity": _check_timidity_cli(),
     }
 
 
@@ -251,10 +225,10 @@ def get_install_instructions() -> str:
     """
     status = check_audio_synthesizer()
 
-    if status['midi2audio']:
+    if status["midi2audio"]:
         return "Audio playback enabled via midi2audio library."
 
-    if status['fluidsynth'] or status['timidity']:
+    if status["fluidsynth"] or status["timidity"]:
         return "Audio playback enabled via CLI synthesizer."
 
     return """

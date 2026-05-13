@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from tqdm import tqdm
@@ -162,7 +162,13 @@ class HarmonyTokenizer:
         value_indices = (1, 3, 4, 2)
         labels = ("CTRL_DENSITY", "CTRL_REGISTER", "CTRL_HARMONY", "CTRL_CHANGE")
         for label, index in zip(labels, value_indices):
-            bucket = int(np.clip(round(float(descriptor_vector[index]) * (self.config.descriptor_bins - 1)), 0, self.config.descriptor_bins - 1))
+            bucket = int(
+                np.clip(
+                    round(float(descriptor_vector[index]) * (self.config.descriptor_bins - 1)),
+                    0,
+                    self.config.descriptor_bins - 1,
+                )
+            )
             tokens.append(self.token_to_id[f"{label}_{bucket}"])
         return tokens
 
@@ -268,7 +274,13 @@ class MelodyTokenizer:
         value_indices = (1, 3, 4, 2)
         labels = ("CTRL_DENSITY", "CTRL_REGISTER", "CTRL_HARMONY", "CTRL_CHANGE")
         for label, index in zip(labels, value_indices):
-            bucket = int(np.clip(round(float(descriptor_vector[index]) * (self.config.descriptor_bins - 1)), 0, self.config.descriptor_bins - 1))
+            bucket = int(
+                np.clip(
+                    round(float(descriptor_vector[index]) * (self.config.descriptor_bins - 1)),
+                    0,
+                    self.config.descriptor_bins - 1,
+                )
+            )
             tokens.append(self.token_to_id[f"{label}_{bucket}"])
         return tokens
 
@@ -298,7 +310,9 @@ class MelodyTokenizer:
         prefix_tokens.append(self.sep_token_id)
         tokens = list(prefix_tokens)
         current_bar = -1
-        for event in sorted(melody_events, key=lambda item: (item.bar_index, item.position_step, item.octave, item.relative_pc)):
+        for event in sorted(
+            melody_events, key=lambda item: (item.bar_index, item.position_step, item.octave, item.relative_pc)
+        ):
             while current_bar < event.bar_index:
                 current_bar += 1
                 tokens.append(self.token_to_id["BAR"])
@@ -336,7 +350,11 @@ class MelodyTokenizer:
             rel_pc_token = self.id_to_token.get(int(token_ids[index + 1]), "")
             oct_token = self.id_to_token.get(int(token_ids[index + 2]), "")
             dur_token = self.id_to_token.get(int(token_ids[index + 3]), "")
-            if not rel_pc_token.startswith("RELPC_") or not oct_token.startswith("OCT_") or not dur_token.startswith("DUR_"):
+            if (
+                not rel_pc_token.startswith("RELPC_")
+                or not oct_token.startswith("OCT_")
+                or not dur_token.startswith("DUR_")
+            ):
                 index += 1
                 continue
             if bar_index < 0 or bar_index >= len(harmony_bars):
@@ -371,12 +389,11 @@ def _normalize_decoded_melody_events(
     for onset_step, duration_steps, pitch, bar_index in events:
         if onset_step < 0 or onset_step >= total_steps:
             continue
-        by_onset.setdefault(int(onset_step), []).append((int(onset_step), int(duration_steps), int(pitch), int(bar_index)))
+        by_onset.setdefault(int(onset_step), []).append(
+            (int(onset_step), int(duration_steps), int(pitch), int(bar_index))
+        )
 
-    deduped = [
-        max(group, key=lambda item: (item[2], item[1]))
-        for _, group in sorted(by_onset.items())
-    ]
+    deduped = [max(group, key=lambda item: (item[2], item[1])) for _, group in sorted(by_onset.items())]
 
     normalized: List[Tuple[int, int, int, int]] = []
     for index, (onset_step, duration_steps, pitch, bar_index) in enumerate(deduped):
@@ -551,7 +568,9 @@ def _extract_melody_events(
             element_offset = float(element.offset)
             offset_within_measure = max(0.0, element_offset - local_bar * 4.0)
         position_step = int(np.clip(round(offset_within_measure * config.steps_per_beat), 0, config.steps_per_bar - 1))
-        duration_steps = int(np.clip(round(float(element.quarterLength) * config.steps_per_beat), 1, config.steps_per_bar))
+        duration_steps = int(
+            np.clip(round(float(element.quarterLength) * config.steps_per_beat), 1, config.steps_per_bar)
+        )
         active_root = harmony_bars[local_bar].root_pc
         relative_pc = (midi_pitch - active_root) % 12
         octave = int(np.clip(octave_value, config.melody_octave_min, config.melody_octave_max))
@@ -586,8 +605,10 @@ def _segment_descriptor_vector(
     if not melody_events:
         raise ValueError("Structured segment requires at least one melody event.")
     change_count = sum(
-        1 for index in range(1, len(harmony_bars))
-        if not harmony_bars[index].hold and (
+        1
+        for index in range(1, len(harmony_bars))
+        if not harmony_bars[index].hold
+        and (
             harmony_bars[index].root_pc != harmony_bars[index - 1].root_pc
             or harmony_bars[index].quality != harmony_bars[index - 1].quality
         )
@@ -596,7 +617,11 @@ def _segment_descriptor_vector(
     mean_octave = np.mean([event.octave for event in melody_events])
     quality_complexity = np.mean(
         [
-            1.0 if bar.quality in {"dom7", "maj7", "min7", "other"} else 0.5 if bar.quality in {"dim", "aug", "sus2", "sus4"} else 0.25
+            (
+                1.0
+                if bar.quality in {"dom7", "maj7", "min7", "other"}
+                else 0.5 if bar.quality in {"dim", "aug", "sus2", "sus4"} else 0.25
+            )
             for bar in harmony_bars
         ]
     )
@@ -606,7 +631,11 @@ def _segment_descriptor_vector(
             np.clip((tempo_bpm - 48.0) / 120.0, 0.0, 1.0),
             np.clip(note_density / 4.0, 0.0, 1.0),
             np.clip(change_count / max(len(harmony_bars) - 1, 1), 0.0, 1.0),
-            np.clip((mean_octave - config.melody_octave_min) / max(config.melody_octave_max - config.melody_octave_min, 1), 0.0, 1.0),
+            np.clip(
+                (mean_octave - config.melody_octave_min) / max(config.melody_octave_max - config.melody_octave_min, 1),
+                0.0,
+                1.0,
+            ),
             np.clip((quality_complexity + chord_tone_ratio) / 2.0, 0.0, 1.0),
             1.0 if str(key_signature.mode) == "major" else 0.0,
         ],
@@ -903,12 +932,16 @@ def _pop909_segments_from_score(
             local_bar = int(np.floor(onset_beats / 4.0))
             if local_bar < 0 or local_bar >= bars_per_segment:
                 continue
-            position_step = int(np.clip(round((onset_beats - local_bar * 4.0) * config.steps_per_beat), 0, config.steps_per_bar - 1))
+            position_step = int(
+                np.clip(round((onset_beats - local_bar * 4.0) * config.steps_per_beat), 0, config.steps_per_bar - 1)
+            )
             signature = (local_bar, position_step)
             if signature in seen_positions:
                 continue
             seen_positions.add(signature)
-            duration_steps = int(np.clip(round((end_beats - onset_beats) * config.steps_per_beat), 1, config.steps_per_bar))
+            duration_steps = int(
+                np.clip(round((end_beats - onset_beats) * config.steps_per_beat), 1, config.steps_per_bar)
+            )
             octave = int(np.clip(midi_pitch // 12 - 1, config.melody_octave_min, config.melody_octave_max))
             melody_events.append(
                 MelodyEvent(
@@ -1066,12 +1099,14 @@ def load_structured_music_corpus(
 
             fast_segments = _pop909_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
             if fast_segments is None:
-                fast_segments = _structured_segments_from_score(score_path, harmony_tokenizer, melody_tokenizer, music_config)
+                fast_segments = _structured_segments_from_score(
+                    score_path, harmony_tokenizer, melody_tokenizer, music_config
+                )
             segments.extend(fast_segments)
             if music_config.max_segments > 0 and len(segments) >= music_config.max_segments:
                 segments = segments[: music_config.max_segments]
                 break
-        except Exception as e:
+        except Exception:
             # Skip files that fail to parse
             error_count += 1
             continue
@@ -1079,7 +1114,10 @@ def load_structured_music_corpus(
     if not segments:
         raise ValueError("No valid structured chord+melody segments were found in the configured music corpus.")
 
-    print(f"Extracted {len(segments)} music segments from {len(score_files)} files (skipped {skipped_count} large files, {error_count} errors)")
+    print(
+        f"Extracted {len(segments)} music segments from {len(score_files)} files "
+        f"(skipped {skipped_count} large files, {error_count} errors)"
+    )
 
     if music_config.segment_cache_path:
         _write_segment_cache(Path(music_config.segment_cache_path), music_config, segments)

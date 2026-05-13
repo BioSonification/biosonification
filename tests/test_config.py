@@ -3,8 +3,9 @@ Tests for bio_music_pipeline.v2.config module.
 """
 
 import json
-import pytest
 from pathlib import Path
+
+import pytest
 
 from bio_music_pipeline.v2.config import (
     BioEncoderConfig,
@@ -24,11 +25,7 @@ def test_bio_encoder_config_defaults():
 
 def test_bio_encoder_config_custom_values():
     """Test BioEncoderConfig with custom values."""
-    config = BioEncoderConfig(
-        embedding_dim=512,
-        use_esm_embedding=True,
-        esm_model_name="facebook/esm2_t12_35M_UR50D"
-    )
+    config = BioEncoderConfig(embedding_dim=512, use_esm_embedding=True, esm_model_name="facebook/esm2_t12_35M_UR50D")
 
     assert config.embedding_dim == 512
     assert config.use_esm_embedding is True
@@ -62,10 +59,7 @@ def test_music_data_config_validation():
 
 def test_v2_pipeline_config_serialization(tmp_path):
     """Test V2PipelineConfig can be serialized to/from JSON."""
-    config = V2PipelineConfig(
-        bio=BioEncoderConfig(embedding_dim=512),
-        music=MusicDataConfig(bars_per_segment=8)
-    )
+    config = V2PipelineConfig(bio=BioEncoderConfig(embedding_dim=512), music=MusicDataConfig(bars_per_segment=8))
 
     # Save to JSON
     config_file = tmp_path / "test_config.json"
@@ -77,14 +71,14 @@ def test_v2_pipeline_config_serialization(tmp_path):
         "music": {
             "bars_per_segment": config.music.bars_per_segment,
             "steps_per_bar": config.music.steps_per_bar,
-        }
+        },
     }
 
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         json.dump(config_dict, f)
 
     # Load from JSON
-    with open(config_file, 'r') as f:
+    with open(config_file, "r") as f:
         loaded_dict = json.load(f)
 
     assert loaded_dict["bio"]["embedding_dim"] == 512
@@ -98,7 +92,7 @@ def test_config_from_json_file():
     if not config_path.exists():
         pytest.skip("Config file not found")
 
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config_dict = json.load(f)
 
     # Verify structure

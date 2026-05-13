@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 import hashlib
 import json
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -29,7 +29,7 @@ def _trusted_torch_load(checkpoint_path: str, map_location: str | torch.device =
 
 
 def _apply_calibration(profile: np.ndarray, calibration: Dict[str, np.ndarray]) -> np.ndarray:
-    calibrated = ((profile - calibration["bio_mean"]) / (calibration["bio_std"] + 1e-6))
+    calibrated = (profile - calibration["bio_mean"]) / (calibration["bio_std"] + 1e-6)
     calibrated = calibrated * calibration["music_std"] + calibration["music_mean"]
     return np.clip(calibrated, 0.0, 1.0).astype(np.float32)
 
@@ -84,10 +84,16 @@ def _validate_checkpoint_compatibility(config: V2PipelineConfig, checkpoint: dic
         ("training.n_heads", saved_config.training.n_heads, config.training.n_heads),
         ("training.n_layers", saved_config.training.n_layers, config.training.n_layers),
         ("training.dim_feedforward", saved_config.training.dim_feedforward, config.training.dim_feedforward),
-        ("training.harmony_max_seq_len", saved_config.training.harmony_max_seq_len, config.training.harmony_max_seq_len),
+        (
+            "training.harmony_max_seq_len",
+            saved_config.training.harmony_max_seq_len,
+            config.training.harmony_max_seq_len,
+        ),
         ("training.melody_max_seq_len", saved_config.training.melody_max_seq_len, config.training.melody_max_seq_len),
     ]
-    mismatches = [f"{name}: checkpoint={saved!r}, effective={current!r}" for name, saved, current in checks if saved != current]
+    mismatches = [
+        f"{name}: checkpoint={saved!r}, effective={current!r}" for name, saved, current in checks if saved != current
+    ]
     if mismatches:
         raise ValueError("Checkpoint/config mismatch:\n" + "\n".join(mismatches))
 
@@ -100,7 +106,9 @@ def _resolve_device(device_name: str) -> torch.device:
     return torch.device(device_name)
 
 
-def _instantiate_models(config: V2PipelineConfig, checkpoint: dict) -> tuple[BioConditionedSequenceModel, BioConditionedSequenceModel]:
+def _instantiate_models(
+    config: V2PipelineConfig, checkpoint: dict
+) -> tuple[BioConditionedSequenceModel, BioConditionedSequenceModel]:
     harmony_tokenizer = HarmonyTokenizer(config.music)
     melody_tokenizer = MelodyTokenizer(config.music)
     harmony_model = BioConditionedSequenceModel(
@@ -239,8 +247,7 @@ def generate_structured_music_from_fasta(
         "melody_min_tokens": melody_min_tokens,
         "calibrated_profile": [float(value) for value in calibrated_profile],
         "generated_harmony_bars": [
-            {"root_pc": int(bar.root_pc), "quality": bar.quality, "hold": bool(bar.hold)}
-            for bar in harmony_bars
+            {"root_pc": int(bar.root_pc), "quality": bar.quality, "hold": bool(bar.hold)} for bar in harmony_bars
         ],
         "generated_melody_note_count": len(decoded_melody),
     }
@@ -294,6 +301,7 @@ def generate_structured_music_from_fasta_fragmented(
 
     # Parse FASTA to get the full sequence
     from Bio import SeqIO
+
     records = list(SeqIO.parse(fasta_path, "fasta"))
     if record_index < 0 or record_index >= len(records):
         raise IndexError(f"record_index={record_index} is outside the valid range [0, {len(records) - 1}]")
@@ -309,7 +317,7 @@ def generate_structured_music_from_fasta_fragmented(
 
     fragments = []
     for start in range(0, len(full_sequence), stride):
-        fragment_seq = full_sequence[start:start + fragment_length]
+        fragment_seq = full_sequence[start : start + fragment_length]
         if len(fragment_seq) >= min_length:
             fragments.append((start, fragment_seq))
 
@@ -330,10 +338,7 @@ def generate_structured_music_from_fasta_fragmented(
 
     for frag_idx, (start_pos, fragment_seq) in enumerate(fragments):
         # Encode fragment
-        bio_result = encoder.encode_sequence(
-            sequence=fragment_seq,
-            sequence_id=f"{sequence_id}::frag{frag_idx:03d}"
-        )
+        bio_result = encoder.encode_sequence(sequence=fragment_seq, sequence_id=f"{sequence_id}::frag{frag_idx:03d}")
 
         calibrated_profile = _apply_calibration(bio_result.control_profile, calibration)
         mode_name = _mode_from_profile(calibrated_profile)
@@ -379,7 +384,9 @@ def generate_structured_music_from_fasta_fragmented(
             min_new_tokens=melody_min_tokens,
             stop_token_ids=[melody_tokenizer.eos_token_id],
         )
-        decoded_melody = melody_tokenizer.decode_melody(generated_melody.tolist(), harmony_bars, bio_result.tonic_pc_hint)
+        decoded_melody = melody_tokenizer.decode_melody(
+            generated_melody.tolist(), harmony_bars, bio_result.tonic_pc_hint
+        )
 
         # Use average tempo across all fragments
         tempo_bpm = 48.0 + float(calibrated_profile[0]) * 120.0
@@ -388,24 +395,31 @@ def generate_structured_music_from_fasta_fragmented(
         segment_score = render_harmony_and_melody_to_score(harmony_bars, decoded_melody, tempo_bpm, config.music)
         segment_scores.append(segment_score)
 
-        fragment_metadata.append({
-            "fragment_index": frag_idx,
-            "start_position": start_pos,
-            "fragment_length": len(fragment_seq),
-            "num_bars": num_bars,
-            "tempo_bpm": tempo_bpm,
-            "harmony_bars": len(harmony_bars),
-            "melody_notes": len(decoded_melody),
-        })
+        fragment_metadata.append(
+            {
+                "fragment_index": frag_idx,
+                "start_position": start_pos,
+                "fragment_length": len(fragment_seq),
+                "num_bars": num_bars,
+                "tempo_bpm": tempo_bpm,
+                "harmony_bars": len(harmony_bars),
+                "melody_notes": len(decoded_melody),
+            }
+        )
 
     # Concatenate all segments
     final_score = music21.stream.Score()
 
     # Use tempo from first fragment
-    first_tempo = 48.0 + float(_apply_calibration(
-        encoder.encode_sequence(sequence=fragments[0][1], sequence_id=sequence_id).control_profile,
-        calibration
-    )[0]) * 120.0
+    first_tempo = (
+        48.0
+        + float(
+            _apply_calibration(
+                encoder.encode_sequence(sequence=fragments[0][1], sequence_id=sequence_id).control_profile, calibration
+            )[0]
+        )
+        * 120.0
+    )
     final_score.insert(0, music21.tempo.MetronomeMark(number=first_tempo))
 
     # Create parts for harmony and melody
@@ -471,4 +485,3 @@ def generate_structured_music_from_fasta_fragmented(
             json.dump(metadata, handle, indent=2)
 
     return metadata
-

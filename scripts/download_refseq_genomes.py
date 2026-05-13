@@ -10,10 +10,10 @@ import argparse
 import gzip
 import shutil
 import sys
-from pathlib import Path
-from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
 import time
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 # Reference genome URLs from NCBI RefSeq (GCF assemblies)
 REFERENCE_GENOMES = {
@@ -22,35 +22,35 @@ REFERENCE_GENOMES = {
         "accession": "GCF_000005845.2",
         "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz",
         "size_mb": 4.6,
-        "description": "Model bacterium, ~4.6 Mbp genome"
+        "description": "Model bacterium, ~4.6 Mbp genome",
     },
     "yeast": {
         "name": "Saccharomyces cerevisiae S288C",
         "accession": "GCF_000146045.2",
         "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/146/045/GCF_000146045.2_R64/GCF_000146045.2_R64_genomic.fna.gz",
         "size_mb": 12.2,
-        "description": "Baker's yeast, ~12 Mbp genome, 16 chromosomes"
+        "description": "Baker's yeast, ~12 Mbp genome, 16 chromosomes",
     },
     "fly": {
         "name": "Drosophila melanogaster",
         "accession": "GCF_000001215.4",
         "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/215/GCF_000001215.4_Release_6_plus_ISO1_MT/GCF_000001215.4_Release_6_plus_ISO1_MT_genomic.fna.gz",
         "size_mb": 143,
-        "description": "Fruit fly, ~143 Mbp genome"
+        "description": "Fruit fly, ~143 Mbp genome",
     },
     "worm": {
         "name": "Caenorhabditis elegans",
         "accession": "GCF_000002985.6",
         "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/985/GCF_000002985.6_WBcel235/GCF_000002985.6_WBcel235_genomic.fna.gz",
         "size_mb": 100,
-        "description": "Nematode worm, ~100 Mbp genome"
+        "description": "Nematode worm, ~100 Mbp genome",
     },
     "arabidopsis": {
         "name": "Arabidopsis thaliana",
         "accession": "GCF_000001735.4",
         "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.fna.gz",
         "size_mb": 119,
-        "description": "Model plant, ~119 Mbp genome"
+        "description": "Model plant, ~119 Mbp genome",
     },
     "human_chr22": {
         "name": "Homo sapiens chromosome 22",
@@ -58,8 +58,8 @@ REFERENCE_GENOMES = {
         "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz",
         "size_mb": 50,
         "description": "Human chr22 (smallest autosome), ~50 Mbp",
-        "extract_chr": "NC_000022.11"
-    }
+        "extract_chr": "NC_000022.11",
+    },
 }
 
 
@@ -70,15 +70,15 @@ def download_file(url: str, output_path: Path, description: str) -> bool:
         print(f"  URL: {url}")
 
         # Add user agent to avoid 403 errors
-        headers = {'User-Agent': 'Mozilla/5.0 (biosonification genome downloader)'}
+        headers = {"User-Agent": "Mozilla/5.0 (biosonification genome downloader)"}
         request = Request(url, headers=headers)
 
         with urlopen(request, timeout=30) as response:
-            total_size = int(response.headers.get('content-length', 0))
+            total_size = int(response.headers.get("content-length", 0))
             block_size = 8192
             downloaded = 0
 
-            with open(output_path, 'wb') as f:
+            with open(output_path, "wb") as f:
                 while True:
                     chunk = response.read(block_size)
                     if not chunk:
@@ -90,7 +90,7 @@ def download_file(url: str, output_path: Path, description: str) -> bool:
                         percent = (downloaded / total_size) * 100
                         mb_downloaded = downloaded / (1024 * 1024)
                         mb_total = total_size / (1024 * 1024)
-                        print(f"\r  Progress: {percent:.1f}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)", end='')
+                        print(f"\r  Progress: {percent:.1f}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)", end="")
 
         print(f"\n  [OK] Downloaded to {output_path}")
         return True
@@ -108,13 +108,13 @@ def extract_gz(gz_path: Path, output_path: Path, extract_chr: str = None) -> boo
     try:
         print(f"Extracting {gz_path.name}...")
 
-        with gzip.open(gz_path, 'rt') as f_in:
-            with open(output_path, 'w') as f_out:
+        with gzip.open(gz_path, "rt") as f_in:
+            with open(output_path, "w") as f_out:
                 if extract_chr:
                     # Extract only specific chromosome
                     write_mode = False
                     for line in f_in:
-                        if line.startswith('>'):
+                        if line.startswith(">"):
                             # Check if this is the chromosome we want
                             write_mode = extract_chr in line
                         if write_mode:
@@ -155,11 +155,11 @@ def download_genome(genome_key: str, output_dir: Path, keep_gz: bool = False) ->
         return True
 
     # Download
-    if not download_file(genome['url'], gz_path, genome['name']):
+    if not download_file(genome["url"], gz_path, genome["name"]):
         return False
 
     # Extract
-    extract_chr = genome.get('extract_chr')
+    extract_chr = genome.get("extract_chr")
     if not extract_gz(gz_path, fasta_path, extract_chr):
         return False
 
@@ -189,29 +189,25 @@ Examples:
   python download_refseq_genomes.py --organisms ecoli yeast
   python download_refseq_genomes.py --organisms all
   python download_refseq_genomes.py --organisms fly --output-dir custom_dir
-        """
+        """,
     )
 
     parser.add_argument(
-        '--organisms',
-        nargs='+',
+        "--organisms",
+        nargs="+",
         required=True,
-        choices=list(REFERENCE_GENOMES.keys()) + ['all'],
-        help='Organisms to download'
+        choices=list(REFERENCE_GENOMES.keys()) + ["all"],
+        help="Organisms to download",
     )
 
     parser.add_argument(
-        '--output-dir',
+        "--output-dir",
         type=Path,
-        default=Path('data/fasta/refseq_genomes'),
-        help='Output directory for downloaded genomes (default: data/fasta/refseq_genomes)'
+        default=Path("data/fasta/refseq_genomes"),
+        help="Output directory for downloaded genomes (default: data/fasta/refseq_genomes)",
     )
 
-    parser.add_argument(
-        '--keep-gz',
-        action='store_true',
-        help='Keep compressed .gz files after extraction'
-    )
+    parser.add_argument("--keep-gz", action="store_true", help="Keep compressed .gz files after extraction")
 
     args = parser.parse_args()
 
@@ -220,7 +216,7 @@ Examples:
     print(f"Output directory: {args.output_dir.absolute()}")
 
     # Determine which genomes to download
-    if 'all' in args.organisms:
+    if "all" in args.organisms:
         genomes_to_download = list(REFERENCE_GENOMES.keys())
     else:
         genomes_to_download = args.organisms
@@ -262,7 +258,7 @@ Examples:
         total_fragments = 0
         for genome_key in genomes_to_download:
             genome = REFERENCE_GENOMES[genome_key]
-            size_bp = genome['size_mb'] * 1_000_000
+            size_bp = genome["size_mb"] * 1_000_000
             fragments = int((size_bp - 1800) / 900) + 1
             total_fragments += fragments
             print(f"  {genome['name']}: ~{fragments:,} fragments")
@@ -271,5 +267,5 @@ Examples:
     return 0 if fail_count == 0 else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

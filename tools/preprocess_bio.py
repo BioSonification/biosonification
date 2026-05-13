@@ -5,17 +5,17 @@ from __future__ import annotations
 
 import argparse
 import pickle
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from bio_music_pipeline.utils.progress_logger import ProgressLogger
 from bio_music_pipeline.v2.bio import BiologicalSequenceEncoder
 from bio_music_pipeline.v2.config import load_v2_config
-from bio_music_pipeline.utils.progress_logger import ProgressLogger
 
 
 def main() -> None:
