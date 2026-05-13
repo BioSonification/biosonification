@@ -5,6 +5,7 @@ Web interface for generating music from biological FASTA sequences.
 """
 
 import os
+import sys
 import numpy as np
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
@@ -23,6 +24,18 @@ app = Flask(
     static_url_path='/static'
 )
 
+# Disable caching for development
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+@app.after_request
+def add_header(response):
+    """Disable caching for all responses"""
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
+
 # Output directory for generated files
 OUTPUT_DIR = PROJECT_ROOT / "web" / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -37,7 +50,7 @@ def index():
     # Check synthesizer availability
     synth_status = check_audio_synthesizer()
     return render_template('index.html', 
-                          audio_enabled=synth_status['fluidsynth'] or synth_status['timidity'],
+                          audio_enabled=synth_status['midi2audio'] or synth_status['fluidsynth'] or synth_status['timidity'],
                           install_instructions=get_install_instructions())
 
 
@@ -85,13 +98,13 @@ def generate():
         midi_path = result['midi_path']
         session_id = result['session_id']
         wav_path = str(OUTPUT_DIR / "audio" / f"{session_id}.wav")
-        
+
         audio_available = False
         if midi_to_wav(midi_path, wav_path):
             result['audio_path'] = wav_path
             result['audio_filename'] = f"{session_id}.wav"
             audio_available = True
-        
+
         result['audio_available'] = audio_available
         result['success'] = True
         
@@ -144,13 +157,16 @@ def download_file(session_id, file_type):
 def status():
     """Check application status."""
     generator = get_generator()
+    if not generator.is_ready() and generator.get_error() is None:
+        generator.initialize()
     synth_status = check_audio_synthesizer()
 
     return jsonify({
         'ready': generator.is_ready(),
         'error': generator.get_error() if not generator.is_ready() else None,
+        'generator': generator.status_payload(),
         'audio_synthesizers': synth_status,
-        'audio_enabled': synth_status['fluidsynth'] or synth_status['timidity']
+        'audio_enabled': synth_status['midi2audio'] or synth_status['fluidsynth'] or synth_status['timidity']
     })
 
 
@@ -270,6 +286,93 @@ def survey_results():
     return jsonify(stats)
 
 
+@app.route('/api/examples')
+def get_examples():
+    """Get list of example compositions."""
+    from .examples_data import EXAMPLES
+    return jsonify({'examples': EXAMPLES})
+
+
+@app.route('/api/examples/<example_id>/midi')
+def download_example_midi(example_id):
+    """Download example MIDI file."""
+    from .examples_data import EXAMPLES
+
+    example = next((ex for ex in EXAMPLES if ex['id'] == example_id), None)
+    if not example:
+        return jsonify({'error': 'Example not found'}), 404
+
+    midi_path = PROJECT_ROOT / "web" / "static" / "examples" / "midi" / example['midi_filename']
+    if not midi_path.exists():
+        return jsonify({'error': 'MIDI file not found'}), 404
+
+    return send_file(
+        str(midi_path),
+        mimetype='audio/midi',
+        as_attachment=True,
+        download_name=example['midi_filename']
+    )
+
+
+@app.route('/api/examples/<example_id>/audio')
+def stream_example_audio(example_id):
+    """Stream example audio (WAV)."""
+    from .examples_data import EXAMPLES
+
+    example = next((ex for ex in EXAMPLES if ex['id'] == example_id), None)
+    if not example:
+        return jsonify({'error': 'Example not found'}), 404
+
+    audio_dir = PROJECT_ROOT / "web" / "static" / "examples" / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+
+    wav_filename = example['midi_filename'].replace('.mid', '.wav')
+    wav_path = audio_dir / wav_filename
+
+    # Convert MIDI to WAV if not exists
+    if not wav_path.exists():
+        midi_path = PROJECT_ROOT / "web" / "static" / "examples" / "midi" / example['midi_filename']
+        if not midi_path.exists():
+            return jsonify({'error': 'MIDI file not found'}), 404
+
+        if not midi_to_wav(str(midi_path), str(wav_path)):
+            return jsonify({'error': 'Audio conversion failed. Install fluidsynth or timidity.'}), 500
+
+    return send_file(
+        str(wav_path),
+        mimetype='audio/wav',
+        as_attachment=False
+    )
+
+
+@app.route('/health')
+def health():
+    """Health check endpoint for monitoring."""
+    from datetime import datetime
+
+    generator = get_generator()
+
+    health_status = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'generator_ready': generator.is_ready()
+    }
+
+    # Check GPU availability
+    try:
+        import torch
+        health_status['gpu_available'] = torch.cuda.is_available()
+    except:
+        health_status['gpu_available'] = False
+
+    if not generator.is_ready():
+        health_status['status'] = 'degraded'
+        health_status['error'] = generator.get_error()
+
+    status_code = 200 if health_status['status'] == 'healthy' else 503
+    return jsonify(health_status), status_code
+
+
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({
@@ -286,8 +389,44 @@ def internal_error(e):
     }), 500
 
 
+def setup_logging():
+    """Configure logging for production."""
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    log_level = os.getenv("BIOSONIFICATION_LOG_LEVEL", "INFO")
+    log_file = os.getenv("BIOSONIFICATION_LOG_FILE")
+
+    # Configure root logger
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper(), logging.INFO),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
+    # Add file handler if specified
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=10*1024*1024,  # 10MB
+            backupCount=5
+        )
+        file_handler.setFormatter(
+            logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        )
+        logging.getLogger().addHandler(file_handler)
+
+    # Set Flask app logger level
+    app.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+
+
 def main():
     """Run the web application."""
+    # Setup logging
+    setup_logging()
+
     # Pre-initialize generator
     print("Initializing BioSonification generator...")
     generator = get_generator()

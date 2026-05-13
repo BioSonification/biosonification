@@ -1,48 +1,53 @@
 # BioSonification Web Interface
 
-Web application for generating music from biological FASTA sequences.
+Flask interface for the structured `v2` biosonification pipeline with **fragmented generation**. It generates a two-track symbolic MIDI file from FASTA input:
 
-## Overview
+- harmony track: bar-level chord grid
+- melody track: monophonic melody conditioned on the generated harmony
 
-This web interface wraps the bio-music pipeline to provide an easy-to-use interface for generating unique music from DNA sequences. The trained model is loaded once and reused for multiple generations — no need to retrain the pipeline.
+## Key Features
 
-## Quick Start
+- **Fragmented Generation**: Automatically splits long sequences into fragments and generates high-quality music for each
+- **4-Bar Model**: Uses the best-performing model (val_loss 0.145 for harmony, 0.157 for melody)
+- **Adaptive Length**: Longer sequences → longer compositions without quality degradation
+- **FASTA Input**: Paste sequence or upload file (drag & drop supported)
+- **Examples Gallery**: Pre-generated compositions from different organisms
+- **Audio Playback**: Listen to examples directly in browser (requires fluidsynth/timidity)
+- **MIDI Download**: Download generated and example MIDI files
+- **Metadata Display**: View generation parameters (tempo, key, bars, notes, fragments)
 
-### 1. Install Dependencies
+## Requirements
+
+Install the project dependencies from the repository root:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Prerequisites
+The web interface automatically uses:
+- **Model**: `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-bar model, best quality)
+- **Config**: `configs/pipeline_v2_medium_rtx2060_fast.json`
+- **Generation**: Fragmented approach with `bars_per_fragment=4`
 
-You must have a trained model before using the web interface. If you haven't trained one yet:
-
-```bash
-python run_pipeline.py --config configs/pipeline_full_paired.json --midi-dir data/midi --paired-data results/paired_data
-```
-
-By default the web app auto-detects:
-
-1. `results/full_paired_run/models/best_model.pt`
-2. `results/models/best_model.pt`
-3. newest `results/*/models/best_model.pt`
-
-You can force a specific checkpoint via:
+Optional overrides:
 
 ```bash
-export BIOSONIFICATION_MODEL_PATH=/absolute/path/to/best_model.pt
+export BIOSONIFICATION_STRUCTURED_CHECKPOINT=/absolute/path/to/structured_pipeline.pt
+export BIOSONIFICATION_CONFIG_PATH=/absolute/path/to/config.json
+export BIOSONIFICATION_DEVICE=auto
 ```
 
-### 3. Run the Web App
+`BIOSONIFICATION_DEVICE` accepts `auto`, `cpu`, or `cuda`.
+
+## Run
 
 ```bash
 python -m web.app
 ```
 
-Open **http://localhost:5001** in your browser.
+Open `http://localhost:5001`.
 
-Optional runtime settings:
+Optional server settings:
 
 ```bash
 export BIOSONIFICATION_HOST=127.0.0.1
@@ -50,79 +55,79 @@ export BIOSONIFICATION_PORT=5001
 export BIOSONIFICATION_DEBUG=0
 ```
 
-## Features
+## Input
 
-- **Paste or Upload**: Paste DNA sequence directly or upload FASTA file
-- **Music Generation**: Transforms DNA sequences into unique MIDI music
-- **Audio Playback**: Currently disabled in this build (MIDI download is available)
-- **MIDI Download**: Download MIDI files for use in any DAW or player
-- **Musical Parameters**: View tempo, key, scale, and other parameters derived from your DNA
+The web form accepts pasted text or FASTA upload. DNA, RNA, and protein-like sequences are accepted by the structured `v2` encoder. The minimum cleaned sequence length is 90 symbols for the default config.
 
-## Optional: Audio Playback
+**Fragmented Generation:**
+- Sequences are automatically split into 1800 bp fragments
+- Each fragment generates 4 bars of music
+- All fragments are concatenated into one MIDI file
 
-In-browser WAV playback is currently disabled due to synthesizer CLI compatibility.
-You can still download MIDI files and play them in DAWs or MIDI players.
+**Examples:**
+- 1800 bp → 1 fragment → 4 bars (~8 seconds)
+- 3600 bp → 2 fragments → 8 bars (~16 seconds)
+- 10000 bp → 6 fragments → 24 bars (~48 seconds)
 
-## Usage
+## API
 
-1. Open http://localhost:5001
-2. Paste a DNA sequence (min 100 nucleotides) or upload a FASTA file
-3. Click **"Generate Music"**
-4. Wait for generation (usually takes a few seconds)
-5. Download the MIDI file
-6. View the musical parameters derived from your DNA
+- `GET /api/status` returns generator readiness, structured checkpoint path, config path, and audio synthesizer status.
+- `POST /api/generate` accepts JSON `{ "fasta": "..." }` or multipart `fasta_file`.
+- `GET /api/download/<session_id>/midi` downloads the generated MIDI.
+- `GET /api/download/<session_id>/wav` downloads rendered WAV when an optional synthesizer is available.
+- `GET /api/examples` returns list of example compositions with metadata.
+- `GET /api/examples/<example_id>/midi` downloads example MIDI file.
+- `GET /api/examples/<example_id>/audio` streams example audio (WAV, converts on first request).
 
-## API Endpoints
+The generation response includes structured metadata:
 
-- `POST /api/generate` — Generate music from FASTA
-  - Body: JSON with `fasta` field OR multipart form with `fasta_file`
-  - Returns: JSON with session_id, musical_params, audio availability
-  
-- `GET /api/download/<session_id>/midi` — Download MIDI file
-- `GET /api/download/<session_id>/wav` — Download WAV audio
-- `GET /api/status` — Check application status
+- `sequence_id`
+- `sequence_type`
+- `full_sequence_length`
+- `num_fragments`
+- `bars_per_fragment`
+- `total_bars`
+- `total_melody_notes`
+- `fragments` — array with per-fragment details:
+  - `fragment_index`
+  - `start_position`
+  - `fragment_length`
+  - `tempo_bpm`
+  - `harmony_bars`
+  - `melody_notes`
 
-## File Structure
+## Output
 
-```
-web/
-├── app.py                 # Flask application
-├── generator.py           # Music generation logic
-├── midi_to_audio.py       # MIDI to WAV conversion
-├── templates/
-│   └── index.html         # Main page
-├── static/
-│   ├── css/
-│   │   └── style.css      # Styles
-│   └── js/
-│       └── app.js         # Frontend logic
-└── output/                # Generated files (auto-created)
-    ├── midi/
-    └── audio/
-```
+Runtime files are written under `web/output/`:
 
-## Keyboard Shortcuts
-
-- `Ctrl/Cmd + Enter` — Generate music (when on input page)
-
-## Troubleshooting
-
-### "Trained model not found"
-Run the full pipeline first, or set:
-
-```bash
-export BIOSONIFICATION_MODEL_PATH=/absolute/path/to/best_model.pt
+```text
+web/output/
+├── fasta/
+├── metadata/
+├── midi/
+└── audio/
 ```
 
-### No audio playback
-Install fluidsynth or timidity (see "Optional: Audio Playback" above)
+This directory is ignored by git.
 
-### "Sequence too short"
-Provide at least 100 nucleotides (A, C, G, T only)
+## Scientific Note
 
-### Generation is slow
-Long sequences (>10,000 nucleotides) take more time to process. Try shorter sequences.
+The system uses biological features as structured conditioning signals for symbolic music generation. It does not demonstrate or claim a causal relationship between genes and music.
 
-## Disclaimer
+## Technical Implementation
 
-This system uses bio-vectors as structured conditioning signals for music generation. **No causal relationship between genes and music is claimed or demonstrated.** Bio-vectors serve as deterministic control signals that statistically influence musical structure.
+**Generator Backend** (`web/generator.py`):
+- Uses `generate_structured_music_from_fasta_fragmented()` for all generations
+- Automatically selects the 4-bar model (`v2_medium_rtx2060_fast`) for best quality
+- Fragments long sequences (>1800 bp) into multiple segments
+- Concatenates all segments into a single MIDI file
+
+**Model Selection Priority**:
+1. `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt` (4-bar, best)
+2. `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt` (8-bar, fallback)
+3. Newest checkpoint in `results/*/checkpoints/structured_pipeline.pt`
+
+**Why Fragmented Generation**:
+- Models trained on short segments (4-8 bars) produce poor quality for long compositions
+- Fragmentation keeps each segment within the training distribution
+- Result: stable quality regardless of sequence length
