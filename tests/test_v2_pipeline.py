@@ -177,7 +177,11 @@ def test_web_status_reports_structured_generator(monkeypatch):
             }
 
     monkeypatch.setattr(web_app, "get_generator", lambda: FakeGenerator())
-    monkeypatch.setattr(web_app, "check_audio_synthesizer", lambda: {"fluidsynth": False, "timidity": False})
+    monkeypatch.setattr(web_app, "check_audio_synthesizer", lambda: {
+        "midi2audio": False,
+        "fluidsynth": False,
+        "timidity": False
+    })
 
     response = web_app.app.test_client().get("/api/status")
     assert response.status_code == 200
@@ -263,6 +267,10 @@ def test_structured_midi_metrics_detect_two_part_score(tmp_path):
     assert metrics["harmony_chord_count"] == 2
     assert metrics["melody_note_count"] == 3
     assert metrics["chord_tone_ratio"] > 0.0
+
+    midi_only_metrics = compute_structured_midi_metrics(str(midi_path))
+    assert midi_only_metrics["chord_change_rate"] > 0.0
+    assert midi_only_metrics["chord_tone_ratio"] > 0.0
 
 
 def test_music21_fallback_rejects_unsupported_composer(tmp_path):

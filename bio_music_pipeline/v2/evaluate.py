@@ -96,6 +96,33 @@ def _chord_tone_ratio(pitches: Sequence[int], offsets: Sequence[float], harmony_
     return float(hits / len(pitches))
 
 
+def _chord_pitch_classes(harmony_chord: Any) -> set[int]:
+    return {int(pitch_class) % 12 for pitch_class in harmony_chord.pitchClasses}
+
+
+def _chord_tone_ratio_from_midi(
+    pitches: Sequence[int],
+    offsets: Sequence[float],
+    harmony_chords: Sequence[Any],
+) -> float:
+    if not pitches or not harmony_chords:
+        return 0.0
+
+    ordered_chords = sorted(harmony_chords, key=lambda item: float(item.offset))
+    chord_offsets = [float(item.offset) for item in ordered_chords]
+    hits = 0
+    for pitch, offset in zip(pitches, offsets):
+        active_index = 0
+        for index, chord_offset in enumerate(chord_offsets):
+            if chord_offset <= float(offset):
+                active_index = index
+            else:
+                break
+        if pitch % 12 in _chord_pitch_classes(ordered_chords[active_index]):
+            hits += 1
+    return float(hits / len(pitches))
+
+
 def _chord_change_rate(harmony_bars: Sequence[HarmonyBar]) -> float:
     if len(harmony_bars) < 2:
         return 0.0
@@ -104,6 +131,17 @@ def _chord_change_rate(harmony_bars: Sequence[HarmonyBar]) -> float:
         if right.root_pc != left.root_pc or right.quality != left.quality or not right.hold:
             changes += 1
     return float(changes / (len(harmony_bars) - 1))
+
+
+def _chord_change_rate_from_midi(harmony_chords: Sequence[Any]) -> float:
+    if len(harmony_chords) < 2:
+        return 0.0
+    ordered_chords = sorted(harmony_chords, key=lambda item: float(item.offset))
+    changes = 0
+    for left, right in zip(ordered_chords, ordered_chords[1:]):
+        if _chord_pitch_classes(left) != _chord_pitch_classes(right):
+            changes += 1
+    return float(changes / (len(ordered_chords) - 1))
 
 
 def compute_structured_midi_metrics(midi_path: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -126,6 +164,16 @@ def compute_structured_midi_metrics(midi_path: str, metadata: Optional[Dict[str,
 
     metadata = metadata or {}
     harmony_bars = _metadata_harmony_bars(metadata)
+    chord_change_rate = (
+        _chord_change_rate(harmony_bars)
+        if harmony_bars
+        else _chord_change_rate_from_midi(harmony_chords)
+    )
+    chord_tone_ratio = (
+        _chord_tone_ratio(melody_pitches, melody_offsets, harmony_bars)
+        if harmony_bars
+        else _chord_tone_ratio_from_midi(melody_pitches, melody_offsets, harmony_chords)
+    )
     duration = float(score.highestTime)
     pitch_min = min(melody_pitches) if melody_pitches else 0
     pitch_max = max(melody_pitches) if melody_pitches else 0
@@ -146,8 +194,8 @@ def compute_structured_midi_metrics(midi_path: str, metadata: Optional[Dict[str,
         "pitch_range": int(pitch_max - pitch_min) if melody_pitches else 0,
         "unique_pitches": int(unique_pitches),
         "pitch_class_entropy": _pitch_entropy(melody_pitches),
-        "chord_change_rate": _chord_change_rate(harmony_bars),
-        "chord_tone_ratio": _chord_tone_ratio(melody_pitches, melody_offsets, harmony_bars),
+        "chord_change_rate": chord_change_rate,
+        "chord_tone_ratio": chord_tone_ratio,
         "self_similarity": _self_similarity(melody_pitches),
         "expected_two_part_score": len(parts) == 2,
         "nonempty_melody": len(melody_notes) > 0,

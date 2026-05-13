@@ -1,277 +1,164 @@
 # BioSonification
 
-Проект генерирует символическую музыку по биологическим последовательностям. Основной контур реализован как иерархический пайплайн `Bio -> Harmony -> Melody`: сначала из FASTA извлекаются biologically informed признаки, затем по ним генерируется аккордовая сетка по тактам, а после этого отдельная модель строит монофоническую мелодию поверх этой гармонии.
+[![CI](https://github.com/username/biosonification/workflows/CI/badge.svg)](https://github.com/username/biosonification/actions)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Ключевая особенность:** Для длинных последовательностей используется **фрагментированная генерация** — входная последовательность разбивается на фрагменты обучающей длины (1800 bp), для каждого генерируется короткий музыкальный сегмент (4 или 8 тактов), затем все сегменты склеиваются в одну длинную композицию. Это обеспечивает стабильное качество независимо от длины входной последовательности.
+Проект генерирует музыку из биологических последовательностей (ДНК, РНК, белки). Система анализирует биологические признаки и создает двухдорожечную композицию: гармонию и мелодию.
 
-## Что делает текущий пайплайн
+## Как это работает
 
-```mermaid
-flowchart TD
-    A["FASTA / DNA / RNA / Protein"] --> B["BiologicalSequenceEncoder"]
-    B --> C["Bio embedding 256D"]
-    B --> D["Control profile 6D"]
-    C --> E["Structured pairing"]
-    D --> E
-    F["Polyphonic MIDI corpus"] --> G["Chord + Melody segmentation"]
-    G --> E
-    C --> H["Harmony model"]
-    D --> H
-    H --> I["Chord grid by bars"]
-    C --> J["Melody model"]
-    D --> J
-    I --> J
-    J --> K["Monophonic melody"]
-    I --> L["MIDI renderer"]
-    K --> L
-    L --> M["2-track MIDI: harmony + melody"]
+```
+FASTA файл → Биологические признаки → Нейросеть → MIDI файл
 ```
 
-## Доступные модели
+Система работает в три этапа:
 
-Проект включает две обученные модели с разными характеристиками:
+1. **Анализ биологии**: извлекает характеристики последовательности (состав, структура, белковые свойства)
+2. **Генерация гармонии**: создает аккордовую сетку на основе биологических признаков
+3. **Генерация мелодии**: создает мелодическую линию поверх гармонии
 
-### 4-тактовая модель (рекомендуется)
-- **Путь:** `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt`
-- **Конфиг:** `configs/pipeline_v2_medium_rtx2060_fast.json`
-- **Архитектура:** 384D, 6 heads, 6 layers
-- **Обучающие данные:** 4-тактовые сегменты из POP909
-- **Validation loss:** Harmony 0.145, Melody 0.157 (лучше!)
-- **Использование:** Фрагментированная генерация с `bars_per_fragment=4`
-
-### 8-тактовая модель
-- **Путь:** `results/v2_medium_rtx2060_long/checkpoints/structured_pipeline.pt`
-- **Конфиг:** `configs/pipeline_v2_medium_rtx2060_long.json`
-- **Архитектура:** 384D, 6 heads, 6 layers
-- **Обучающие данные:** 8-тактовые сегменты из POP909
-- **Validation loss:** Harmony 0.179, Melody 0.215
-- **Использование:** Фрагментированная генерация с `bars_per_fragment=8`
-
-**Почему 4-тактовая модель лучше:**
-- Меньший validation loss → лучшее качество генерации
-- Более короткие сегменты → больше разнообразия при фрагментированной генерации
-- Лучше обобщается на новые данные
-
-## Архитектурные свойства
-
-- Гармония и мелодия разделены на два нейросетевых этапа.
-- Мелодия жёстко ограничена гармонической сеткой и нормализуется в монофоническую линию без самоналожений.
-- Биологический слой использует готовые биоинформатические решения: `Biopython ProtParam`, `ViennaRNA`, опционально `ESM` через `transformers`.
-- Pairing строится по структурированным музыкальным дескрипторам.
-
-## Основные файлы
-
-Основной путь разработки и запуска:
-
-- `train_bio_music_v2.py`
-- `generate_from_fasta_v2.py`
-- `configs/pipeline_v2_small.json`
-- `bio_music_pipeline/v2/structured_*`
-- `bio_music_pipeline/v2/evaluate.py`
-- `bio_music_pipeline/v2/dataset_report.py`
-- `web/`
-
-## Текущая реализация
-
-Основные модули:
-
-- `bio_music_pipeline/v2/bio.py`: sequence encoder, ORF, protein features, RNA folding, optional ESM
-- `bio_music_pipeline/v2/corpus.py`: поиск score-файлов и fallback-корпус `music21`
-- `bio_music_pipeline/v2/structured_music.py`: извлечение аккордов и мелодии из полифонического корпуса, токенизация, рендер MIDI
-- `bio_music_pipeline/v2/structured_pairing.py`: pairing bio fragments и музыкальных сегментов
-- `bio_music_pipeline/v2/structured_model.py`: autoregressive Transformer с conditioning по bio vector
-- `bio_music_pipeline/v2/structured_train.py`: обучение `harmony model` и `melody model`
-- `bio_music_pipeline/v2/structured_generate.py`: inference `FASTA -> MIDI`
-- `bio_music_pipeline/v2/evaluate.py`: evaluation metrics и baseline
-- `bio_music_pipeline/v2/dataset_report.py`: manifest данных
-
-CLI:
-
-- `train_bio_music_v2.py` — обучение моделей
-- `generate_from_fasta_v2.py` — генерация из FASTA (baseline, использует только первый фрагмент)
-- `generate_from_fasta_v2_fragmented.py` — **фрагментированная генерация** (рекомендуется для длинных последовательностей)
-
-Веб-интерфейс:
-
-- `web/app.py` — Flask-приложение с веб-интерфейсом
-- Автоматически использует фрагментированную генерацию с 4-тактовой моделью
+Для длинных последовательностей система автоматически разбивает их на фрагменты и генерирует музыку для каждого, сохраняя стабильное качество.
 
 ## Быстрый старт
 
-Подготовка окружения:
+### За 10 минут
+
+Полное руководство для начинающих: [Быстрый старт](docs/quickstart.md)
+
+Краткая версия:
 
 ```powershell
+# 1. Установка
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install torch --index-url https://download.pytorch.org/whl/cu126
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# 2. Генерация музыки
+.\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
+  --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
+  --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
+  --output my_music.mid
+
+# 3. Веб-интерфейс (опционально)
+.\.venv\Scripts\python.exe -m web.app
+# Откройте http://localhost:5001
 ```
 
-Проверка GPU:
+### Подробные руководства
 
-```powershell
-@'
-import torch
-print(torch.__version__)
-print("cuda:", torch.cuda.is_available())
-if torch.cuda.is_available():
-    print(torch.cuda.get_device_name(0))
-'@ | .\.venv\Scripts\python.exe -
-```
+- [Генерация музыки](docs/guides/generation.md) — все способы генерации
+- [Обучение модели](docs/getting-started/training-quickstart.md) — обучение на своих данных
+- [Веб-интерфейс](web/README.md) — работа через браузер
+- [Полная установка](docs/getting-started/run-from-scratch.md) — детальная инструкция
 
-Обучение (4-тактовая модель, рекомендуется):
+## Доступные модели
 
-```powershell
-.\.venv\Scripts\python.exe train_bio_music_v2.py --config configs\pipeline_v2_medium_rtx2060_fast.json
-```
+Проект включает две обученные модели:
 
-Генерация из FASTA (фрагментированная, рекомендуется):
+| Модель | Качество | Длина фрагмента | Рекомендация |
+|--------|----------|-----------------|--------------|
+| 4-тактовая | Лучше (val_loss 0.145/0.157) | 4 такта | Рекомендуется |
+| 8-тактовая | Хорошо (val_loss 0.179/0.215) | 8 тактов | Альтернатива |
+
+4-тактовая модель показывает лучшее качество и больше разнообразия при генерации.
+
+## Примеры
+
+Сгенерируйте музыку из генома E. coli:
 
 ```powershell
 .\.venv\Scripts\python.exe generate_from_fasta_v2_fragmented.py `
   --checkpoint results\v2_medium_rtx2060_fast\checkpoints\structured_pipeline.pt `
   --fasta data\fasta\refseq_genomes\GCF_000005845.2_genomic.fna `
-  --output results\generated_music\ecoli_fragmented.mid `
-  --bars-per-fragment 4 `
-  --metadata-output results\generated_music\ecoli_fragmented.json
+  --output ecoli_music.mid `
+  --bars-per-fragment 4
 ```
 
-Запуск веб-интерфейса:
-
-```powershell
-.\.venv\Scripts\python.exe -m web.app
-# Откройте http://localhost:5001
-```
-
-## Что проверять после запуска
-
-После обучения 4-тактовой модели:
-
-- `results/v2_medium_rtx2060_fast/checkpoints/structured_pipeline.pt`
-- `results/v2_medium_rtx2060_fast/checkpoints/harmony_best.pt`
-- `results/v2_medium_rtx2060_fast/checkpoints/melody_best.pt`
-- `results/v2_medium_rtx2060_fast/metrics.json`
-- `results/v2_medium_rtx2060_fast/smoke/structured_sample.mid`
-
-После фрагментированной генерации:
-
-- `results/generated_music/ecoli_fragmented.mid` — MIDI файл с гармонией и мелодией
-- `results/generated_music/ecoli_fragmented.json` — метаданные:
-  - `num_fragments` — количество фрагментов
-  - `total_bars` — общее количество тактов
-  - `total_melody_notes` — общее количество нот мелодии
-  - `fragments` — детали по каждому фрагменту (темп, количество нот)
-
-Быстрая техническая проверка:
-
-```powershell
-@'
-from music21 import converter
-score = converter.parse("results/generated_music/ecoli_fragmented.mid")
-print("highestTime:", float(score.highestTime))
-for i, part in enumerate(score.parts):
-    print("part", i, "notes", len(list(part.flatten().notes)))
-'@ | .\.venv\Scripts\python.exe -
-```
-
-Ожидаемый результат для фрагментированной генерации:
-
-- `score.highestTime` = `num_fragments * bars_per_fragment * 4.0` (quarter notes)
-- 2 партии: гармония (аккорды) и мелодия (монофоническая линия)
-- Количество нот мелодии соответствует `total_melody_notes` из метаданных
-- Для длинных последовательностей (>1800 bp) генерируется несколько фрагментов
-
-## Оценка результата
-
-Минимальный evaluation-run для structured `v2`:
-
-```powershell
-.\.venv\Scripts\python.exe tools\evaluate_structured_v2.py --checkpoint results\v2_music21_rtx2060\checkpoints\structured_pipeline.pt --fasta data\fasta\quick_sample.fa --output-dir results\v2_evaluation --max-records 4 --device auto
-```
-
-Команда генерирует MIDI для нескольких FASTA fragments, строит random harmony+melody baseline и сохраняет:
-
-- `results/v2_evaluation/evaluation_report.json`
-- `results/v2_evaluation/evaluation_report.md`
-- `results/v2_evaluation/midi/*.mid`
-
-Метрики проверяют структуру MIDI, плотность мелодии, pitch range, chord change rate, chord-tone ratio, self-similarity и invalid generation rate.
-
-## Отчёт по данным
-
-Перед обучением или оценкой можно зафиксировать manifest используемых FASTA/MIDI данных:
-
-```powershell
-.\.venv\Scripts\python.exe tools\report_structured_dataset.py --config configs\pipeline_v2_small.json --output-dir results\v2_dataset_report
-```
-
-Отчёт сохраняет:
-
-- `results/v2_dataset_report/dataset_report.json`
-- `results/v2_dataset_report/dataset_report.md`
-
-Fallback-корпус `music21` помечается как demo/smoke-test источник. Для серьёзных экспериментов лучше указывать внешний лицензированный полифонический MIDI-корпус в `music.midi_dirs`.
+Для последовательности длиной 10000 bp система создаст композицию из 24 тактов (6 фрагментов по 4 такта).
 
 ## Документация
 
-### Быстрый старт
-- [Запуск с нуля](docs/getting-started/run-from-scratch.md) — полная инструкция по установке и первому запуску
-- [Быстрый старт обучения](docs/getting-started/training-quickstart.md) — обучение с использованием кэша
-- [Работа с большим датасетом](docs/getting-started/large-dataset-quickstart.md) — обучение на полном датасете
+### Начало работы
+- [Быстрый старт за 10 минут](docs/quickstart.md) — для новичков
+- [Запуск с нуля](docs/getting-started/run-from-scratch.md) — полная инструкция
+- [Быстрый старт обучения](docs/getting-started/training-quickstart.md) — обучение модели
+- [FAQ и Troubleshooting](docs/faq.md) — частые вопросы и решение проблем
 
 ### Руководства
-- [Руководство по данным](docs/guides/data-guide.md) — описание биологических и музыкальных данных
+- [Руководство по генерации](docs/guides/generation.md) — генерация музыки из геномов
+- [Руководство по данным](docs/guides/data-guide.md) — биологические и музыкальные данные
 - [Руководство по предобработке](docs/guides/preprocessing-guide.md) — кэширование и оптимизация
-- [Руководство по генерации](GENERATION_GUIDE.md) — генерация музыки из геномов
 
 ### Техническая документация
-- [Архитектура и научная методология](docs/technical/architecture-and-science.md) — постановка задачи и методология
-- [Разбор кода](docs/technical/code-walkthrough.md) — детальное описание модулей
-- [Структура проекта](docs/technical/project-structure.md) — файловая карта проекта
+- [Архитектура и методология](docs/technical/architecture-and-science.md) — научное обоснование
+- [Разбор кода](docs/technical/code-walkthrough.md) — описание модулей
+- [Структура проекта](docs/technical/project-structure.md) — карта файлов
 
-### Дипломная работа
-- [Сводка экспериментов](docs/thesis/experiment-summary.md) — финальный эксперимент для диплома
-- [Полный текст диплома](docs/thesis/diploma-work.md) — полная дипломная работа
+### Развертывание
+- [Production развертывание](docs/deployment/README.md) — запуск в production
+- [HTTPS настройка](docs/deployment/https-setup.md) — публичный доступ
 
-### Полная документация
-- [docs/README.md](docs/README.md) — навигация по всей документации
+### Исследование
+- [Сводка экспериментов](docs/thesis/experiment-summary.md) — результаты экспериментов
+- [Полный текст диплома](docs/thesis/diploma-work.md) — дипломная работа
 
-## Локально подтверждено
+Полная навигация: [docs/README.md](docs/README.md)
 
-На текущем устройстве с `RTX 2060 6 GB` проверено:
+## Требования
 
-- `torch` видит CUDA
-- `pytest` проходит
-- обучение structured pipeline завершается успешно
-- `metrics.json` показывает убывающие `harmony` и `melody` losses
-- отдельная генерация из FASTA создаёт двухдорожечный MIDI с фиксированной длиной и монофонической мелодией
+- Python 3.10+
+- NVIDIA GPU с CUDA (для обучения и быстрой генерации)
+- 6+ GB VRAM (проверено на RTX 2060)
+- Windows 10/11 (основная платформа разработки)
+
+Генерация работает и на CPU, но медленнее.
+
+## Разработка
+
+### Запуск тестов
+
+```powershell
+# Все тесты
+.\.venv\Scripts\python.exe -m pytest
+
+# С покрытием
+.\.venv\Scripts\python.exe -m pytest --cov
+
+# Конкретный модуль
+.\.venv\Scripts\python.exe -m pytest tests/test_v2_pipeline.py
+```
+
+### Проверка кода
+
+```powershell
+# Форматирование
+.\.venv\Scripts\python.exe -m black .
+.\.venv\Scripts\python.exe -m isort .
+
+# Линтинг
+.\.venv\Scripts\python.exe -m flake8 bio_music_pipeline web tests
+
+# Проверка типов
+.\.venv\Scripts\python.exe -m mypy bio_music_pipeline web --ignore-missing-imports
+```
 
 ## Ограничения
 
-- Этап `Bio + Harmony + Melody -> Accompaniment` пока сознательно не реализован.
-- `ESM` включён опционально и по умолчанию выключен в small-конфиге, чтобы укладываться в память `RTX 2060 6 GB`.
-- Для по-настоящему богатой музыки лучше заменить fallback `music21` corpus на более крупный внешний полифонический корпус.
-- Биологические признаки используются как conditioning signals. Проект не доказывает причинную связь между генами и музыкальными структурами.
-- Runtime-артефакты (`results/`, `outputs/`, `tmp/`, `web/output/`) не должны храниться в git; воспроизводимые результаты нужно описывать через конфиги, метрики и manifest-файлы.
+- Система генерирует музыку в стиле обучающего корпуса (POP909, MAESTRO)
+- Биологические признаки используются как управляющие сигналы, но не доказывают причинную связь между генами и музыкой
+- Текущая версия создает только гармонию и мелодию (без аккомпанемента)
+- ESM embeddings отключены по умолчанию для экономии памяти GPU
 
-## Эволюция подхода
+## Лицензия
 
-### Baseline (v1)
-- Генерация одной длинной композиции за раз
-- Адаптивная длина: `num_bars = max(8, min(32, sequence_length // 200))`
-- **Проблема:** Для длинных последовательностей (>1800 bp) модель выходит за пределы обучающего распределения → качество падает, гармония повторяется, мелодия становится монотонной
+MIT License. См. [LICENSE](LICENSE) для деталей.
 
-### Фрагментированная генерация (v2, текущая)
-- Входная последовательность разбивается на фрагменты по 1800 bp (обучающая длина)
-- Для каждого фрагмента генерируется короткий сегмент (4 или 8 тактов)
-- Все сегменты склеиваются в одну композицию
-- **Преимущества:**
-  - Каждый фрагмент генерируется в пределах обучающего распределения → стабильное качество
-  - Длинные последовательности → длинные композиции без потери качества
-  - Больше разнообразия (каждый фрагмент имеет свой био-вектор)
-- **Результаты:** Для 10000 bp последовательности генерируется 24 такта (6 фрагментов × 4 такта) вместо 9 тактов в baseline
+## Благодарности
 
-### Выбор модели
-- **8-тактовая модель:** Обучена на 8-тактовых сегментах, val_loss выше
-- **4-тактовая модель (выбрана):** Обучена на 4-тактовых сегментах, val_loss ниже на 19% (harmony) и 27% (melody)
-- Меньшие сегменты → лучшее обобщение → выше качество
+- [POP909 Dataset](https://github.com/music-x-lab/POP909-Dataset) — музыкальный корпус
+- [MAESTRO Dataset](https://magenta.tensorflow.org/datasets/maestro) — классическая музыка
+- [NCBI RefSeq](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/) — референсные геномы
+- [Biopython](https://biopython.org/) — биоинформатические инструменты
+- [music21](http://web.mit.edu/music21/) — музыкальный анализ

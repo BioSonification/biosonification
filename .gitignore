@@ -69,3 +69,5 @@ CHANGES.md
 data/fasta
 
 .*
+thesis*/
+coverage.xml
