@@ -1,16 +1,16 @@
-MIDI Dataset Directory
-======================
+Директория MIDI-датасета
+==========================
 
-Place your MIDI files (.mid, .midi) in this directory or any subdirectory.
-The pipeline will automatically discover and process all MIDI files found here.
+Поместите MIDI-файлы (.mid, .midi) в эту директорию или любую вложенную директорию.
+Конвейер автоматически найдет и обработает все MIDI-файлы, расположенные здесь.
 
-Supported formats:
+Поддерживаемые форматы:
 - .mid
 - .midi
 
-You can organize files in subdirectories if needed:
+При необходимости файлы можно организовать во вложенных директориях:
 - data/midi/classical/
 - data/midi/jazz/
 - data/midi/custom/
 
-All files will be included in the dataset.
+Все файлы будут включены в датасет.

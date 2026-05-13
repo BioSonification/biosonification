@@ -12,7 +12,7 @@
 - [Работа с большим датасетом](getting-started/large-dataset-quickstart.md) — обучение на полных данных
 
 **Помощь:**
-- [FAQ и Troubleshooting](faq.md) — частые вопросы и решение проблем
+- [FAQ и устранение неполадок](faq.md) — частые вопросы и решение проблем
 
 ## Руководства
 
@@ -34,16 +34,15 @@
 
 Инструкции по запуску в production:
 
-- [Production развертывание](deployment/README.md) — быстрый старт
+- [Развертывание в production](deployment/README.md) — быстрый старт
 - [HTTPS настройка](deployment/https-setup.md) — публичный доступ с SSL
-- [Windows production](deployment/windows-production.md) — подробное руководство
+- [Production на Windows](deployment/windows-production.md) — подробное руководство
 
 ## Дипломная работа
 
 Материалы исследования:
 
 - [Сводка экспериментов](thesis/experiment-summary.md) — результаты финального эксперимента
-- [Полный текст диплома](thesis/diploma-work.md) — дипломная работа
 
 ## Дополнительные ресурсы
 
@@ -62,7 +61,6 @@
 1. Изучите [Архитектуру и методологию](technical/architecture-and-science.md)
 2. Прочитайте [Сводку экспериментов](thesis/experiment-summary.md)
 3. Ознакомьтесь с [Руководством по данным](guides/data-guide.md)
-4. Изучите [Полный текст диплома](thesis/diploma-work.md)
 
 ### Разработчики
 1. Прочитайте [Разбор кода](technical/code-walkthrough.md)
@@ -82,17 +80,17 @@
 ### Архитектура модели
 Bio-Conditioned Transformer с двухэтапной генерацией:
 - Биологические признаки кодируются в 256D вектор
-- Harmony model генерирует аккордовую сетку
-- Melody model создает мелодию поверх гармонии
+- Модель гармонии генерирует аккордовую сетку
+- Модель мелодии создает мелодию поверх гармонии
 
 ### Доступные модели
-- 4-тактовая (рекомендуется): validation loss 0.145/0.157
-- 8-тактовая: validation loss 0.179/0.215
+- 4-тактовая (рекомендуется): валидационная ошибка 0.145/0.157
+- 8-тактовая: валидационная ошибка 0.179/0.215
 
 ## Полезные ссылки
 
-- [POP909 Dataset](https://github.com/music-x-lab/POP909-Dataset) — музыкальный корпус
-- [MAESTRO Dataset](https://magenta.tensorflow.org/datasets/maestro) — классическая музыка
+- [Датасет POP909](https://github.com/music-x-lab/POP909-Dataset) — музыкальный корпус
+- [Датасет MAESTRO](https://magenta.tensorflow.org/datasets/maestro) — классическая музыка
 - [NCBI RefSeq](https://ftp.ncbi.nlm.nih.gov/genomes/refseq/) — референсные геномы
 - [Biopython](https://biopython.org/) — биоинформатические инструменты
 - [music21](http://web.mit.edu/music21/) — музыкальный анализ
