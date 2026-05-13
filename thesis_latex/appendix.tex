@@ -1,11 +1,22 @@
 \appendix
 
 \stepcounter{appendixnum}
-\chapter{ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ СИСТЕМЫ}
+\chapter*{Приложение}
+\addcontentsline{toc}{chapter}{Приложение}
+\setcounter{section}{0}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{table}{0}
+\renewcommand{\thesection}{\Alph{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\renewcommand{\thetable}{\thesection.\arabic{table}}
 
-\section{Установка и запуск}
+\section{Примеры использования системы}
 
-\subsection{Требования}
+\subsection{Установка и запуск}
+
+\subsubsection{Требования}
 
 \begin{itemize}
 \item Python 3.10+
@@ -14,7 +25,7 @@
 \item 5GB свободного места на диске
 \end{itemize}
 
-\subsection{Установка зависимостей}
+\subsubsection{Установка зависимостей}
 
 \begin{verbatim}
 pip install torch torchvision torchaudio --index-url
@@ -22,7 +33,7 @@ pip install torch torchvision torchaudio --index-url
 pip install -r requirements.txt
 \end{verbatim}
 
-\subsection{Подготовка данных}
+\subsubsection{Подготовка данных}
 
 \begin{verbatim}
 # Скачать POP909 датасет
@@ -32,9 +43,9 @@ python scripts/download_pop909.py
 python scripts/prepare_fasta.py
 \end{verbatim}
 
-\section{Обучение модели}
+\subsection{Обучение модели}
 
-\subsection{Конфигурация}
+\subsubsection{Конфигурация}
 
 Пример конфигурационного файла \texttt{config.json}:
 
@@ -57,7 +68,7 @@ python scripts/prepare_fasta.py
 }
 \end{verbatim}
 
-\subsection{Запуск обучения}
+\subsubsection{Запуск обучения}
 
 \begin{verbatim}
 python train_bio_music_v2.py \
@@ -65,9 +76,9 @@ python train_bio_music_v2.py \
   --output_dir results/my_experiment
 \end{verbatim}
 
-\section{Генерация музыки}
+\subsection{Генерация музыки}
 
-\subsection{Из FASTA файла}
+\subsubsection{Из FASTA файла}
 
 \begin{verbatim}
 python generate_from_fasta_v2_fragmented.py \
@@ -79,7 +90,7 @@ python generate_from_fasta_v2_fragmented.py \
   --output generated_music.mid
 \end{verbatim}
 
-\subsection{Через веб-интерфейс}
+\subsubsection{Через веб-интерфейс}
 
 \begin{verbatim}
 cd web
@@ -88,9 +99,9 @@ python app.py
 
 Откройте браузер по адресу \texttt{http://localhost:5001}.
 
-\section{Примеры входных данных}
+\subsection{Примеры входных данных}
 
-\subsection{FASTA формат}
+\subsubsection{FASTA формат}
 
 \begin{verbatim}
 >NC_000913.3 Escherichia coli K-12 MG1655
@@ -99,7 +110,7 @@ TGATAGCAGCTTCTGAACTGGTTACCTGCCGTGAGTAAATTAAAATTTTATTGACTTAGG
 TCACTAAATACTTTAACCAATATAGGCATAGCGCACAGACAGATAAAAATTACAGAGTAC
 \end{verbatim}
 
-\subsection{Protein FASTA}
+\subsubsection{Protein FASTA}
 
 \begin{verbatim}
 >sp|P0A7B8|RPOB_ECOLI DNA-directed RNA polymerase
@@ -107,10 +118,9 @@ MQTLNDRLLVLPVELLRGETVRRTQTDSPYAQLADALRQRLAERLGVQPLVVFEMADLR
 AAFNHSSQPGTTLPQYVEMLPKQKVLGAMVTHRLSAEEKAELWQRIRQNVREARKQIVR
 \end{verbatim}
 
-\stepcounter{appendixnum}
-\chapter{СТРУКТУРА ПРОЕКТА}
+\section{Структура проекта}
 
-\section{Основные модули}
+\subsection{Основные модули}
 
 \begin{verbatim}
 biosonification/
@@ -129,7 +139,7 @@ biosonification/
 └── generate_from_fasta_v2_fragmented.py # CLI генерации
 \end{verbatim}
 
-\section{Ключевые файлы}
+\subsection{Ключевые файлы}
 
 \begin{itemize}
 \item \texttt{bio.py} — извлечение биологических признаков
@@ -140,10 +150,9 @@ biosonification/
 \item \texttt{generate\_from\_fasta\_v2\_fragmented.py} — генерация MIDI
 \end{itemize}
 
-\stepcounter{appendixnum}
-\chapter{ДОПОЛНИТЕЛЬНЫЕ ТАБЛИЦЫ И ГРАФИКИ}
+\section{Дополнительные таблицы и графики}
 
-\section{Детальная статистика обучения}
+\subsection{Детальная статистика обучения}
 
 \begin{table}[htbp]
 \centering
@@ -192,7 +201,7 @@ biosonification/
 \end{tabular}
 \end{table}
 
-\section{Детальная статистика генерации}
+\subsection{Детальная статистика генерации}
 
 \begin{table}[htbp]
 \centering
@@ -219,7 +228,7 @@ biosonification/
 \end{tabular}
 \end{table}
 
-\section{Примеры биологических признаков}
+\subsection{Примеры биологических признаков}
 
 \begin{table}[htbp]
 \centering

@@ -113,9 +113,17 @@
 
 % Содержание
 \usepackage{tocloft}
-\renewcommand{\cfttoctitlefont}{\normalfont\bfseries\MakeUppercase}
+\renewcommand{\cfttoctitlefont}{\normalfont\bfseries}
 \renewcommand{\cftbeforetoctitleskip}{-1em}
 \renewcommand{\cftaftertoctitleskip}{1pt}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsubsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftchapfont}{\normalfont\bfseries}
+\renewcommand{\cftchappagefont}{\normalfont\bfseries}
+\renewcommand{\cftsecfont}{\normalfont\bfseries}
+\renewcommand{\cftsecpagefont}{\normalfont\bfseries}
 
 % Главы, разделы, подразделы
 \usepackage[explicit]{titlesec}
@@ -131,4 +139,6 @@
 \makeatletter
 \renewcommand{\@biblabel}[1]{#1.}
 \makeatother
+\addto\captionsrussian{\renewcommand{\bibname}{Список использованных источников и литературы}}
+\addto\captionsenglish{\renewcommand{\bibname}{Список использованных источников и литературы}}
 \renewcommand{\bibname}{Список использованных источников и литературы}
