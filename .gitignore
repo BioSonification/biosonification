@@ -68,6 +68,7 @@ CHANGES.md
 
 data/fasta
 
-.*
+.* 
+!.github/
 thesis*/
 coverage.xml
