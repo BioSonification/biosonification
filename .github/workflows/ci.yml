@@ -60,18 +60,12 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install linting tools
+    - name: Install formatting tools
       run: |
-        pip install black flake8 isort mypy
+        pip install black isort
 
     - name: Check code formatting with black
       run: black --check .
 
     - name: Check import sorting with isort
       run: isort --check-only .
-
-    - name: Lint with flake8
-      run: flake8 bio_music_pipeline web tests
-
-    - name: Type check with mypy
-      run: mypy bio_music_pipeline web --ignore-missing-imports

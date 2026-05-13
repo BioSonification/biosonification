@@ -36,7 +36,7 @@ class BioMusicGenerator:
 
         if not self.config_path.exists():
             self._error = f"Config file not found: {self.config_path}"
-        if not self.checkpoint_path.exists():
+        elif not self.checkpoint_path.exists():
             self._error = (
                 f"Structured checkpoint not found: {self.checkpoint_path}. "
                 "Train the v2 pipeline first or set BIOSONIFICATION_STRUCTURED_CHECKPOINT."
