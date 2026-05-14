@@ -1,0 +1,10 @@
+{
+  "ecoli_adaptive": {
+    "prediction": "consonant",
+    "confidence": 0.6866365671157837,
+    "scores": {
+      "dissonant": 0.3133634328842163,
+      "consonant": 0.6866365671157837
+    }
+  }
+}

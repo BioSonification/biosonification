@@ -171,6 +171,36 @@ TAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA
                         Скачать MIDI (гармония + мелодия)
                     </a>
 
+                    <!-- Consonance Rating -->
+                    <div class="consonance-section" id="consonance-section">
+                        <h3>Анализ консонансности</h3>
+                        <div class="consonance-card">
+                            <div class="consonance-rating">
+                                <div class="rating-label" id="consonance-label">Загрузка...</div>
+                                <div class="rating-score">
+                                    <span id="consonance-prediction" class="prediction-badge">-</span>
+                                    <span id="consonance-confidence" class="confidence-value">-</span>
+                                </div>
+                            </div>
+                            <div class="rating-details" id="consonance-details">
+                                <div class="score-bar">
+                                    <div class="score-label">Консонансность</div>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" id="consonant-bar" style="width: 0%"></div>
+                                    </div>
+                                    <div class="score-value" id="consonant-value">0%</div>
+                                </div>
+                                <div class="score-bar">
+                                    <div class="score-label">Диссонансность</div>
+                                    <div class="bar-container">
+                                        <div class="bar-fill dissonant" id="dissonant-bar" style="width: 0%"></div>
+                                    </div>
+                                    <div class="score-value" id="dissonant-value">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Musical Parameters -->
                     <div class="params-section">
                         <h3>Метаданные генерации</h3>

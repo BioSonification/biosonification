@@ -11,6 +11,12 @@ EXAMPLES = [
         "duration_seconds": 18,
         "genome_size": "4.6 MB",
         "icon": "🦠",
+        "consonance": {
+            "prediction": "consonant",
+            "confidence": 0.6866,
+            "consonant_score": 0.6866,
+            "dissonant_score": 0.3134,
+        },
     },
     {
         "id": "yeast",
@@ -22,6 +28,7 @@ EXAMPLES = [
         "duration_seconds": 18,
         "genome_size": "12 MB",
         "icon": "🍄",
+        "consonance": None,
     },
     {
         "id": "drosophila",
@@ -33,6 +40,7 @@ EXAMPLES = [
         "duration_seconds": 18,
         "genome_size": "141 MB",
         "icon": "🪰",
+        "consonance": None,
     },
     {
         "id": "worm",
@@ -44,6 +52,7 @@ EXAMPLES = [
         "duration_seconds": 18,
         "genome_size": "99 MB",
         "icon": "🪱",
+        "consonance": None,
     },
     {
         "id": "arabidopsis",
@@ -55,6 +64,7 @@ EXAMPLES = [
         "duration_seconds": 18,
         "genome_size": "117 MB",
         "icon": "🌱",
+        "consonance": None,
     },
     {
         "id": "drosophila_long",
@@ -66,5 +76,6 @@ EXAMPLES = [
         "duration_seconds": 64,
         "genome_size": "141 MB",
         "icon": "🪰",
+        "consonance": None,
     },
 ]
