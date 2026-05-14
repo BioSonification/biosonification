@@ -35,6 +35,9 @@ const elements = {
     // Audio
     audioPlayer: document.getElementById('audio-player'),
     audioUnavailable: document.getElementById('audio-unavailable'),
+
+    // Consonance section
+    consonanceSection: document.getElementById('consonance-section'),
     
     // Parameters
     paramTempo: document.getElementById('param-tempo'),
@@ -233,6 +236,40 @@ function showResults(data) {
     // Download link
     elements.downloadMidiBtn.href = `/api/download/${data.session_id}/midi`;
     
+    // Consonance rating
+    if (data.consonance && data.consonance.success) {
+        const consonance = data.consonance;
+        const predictionBadge = document.getElementById('consonance-prediction');
+        const confidenceValue = document.getElementById('consonance-confidence');
+        const consonantBar = document.getElementById('consonant-bar');
+        const dissonantBar = document.getElementById('dissonant-bar');
+        const consonantValue = document.getElementById('consonant-value');
+        const dissonantValue = document.getElementById('dissonant-value');
+        const consonanceLabel = document.getElementById('consonance-label');
+
+        predictionBadge.textContent = consonance.prediction.toUpperCase();
+        predictionBadge.className = `prediction-badge ${consonance.prediction}`;
+        confidenceValue.textContent = `${Math.round(consonance.confidence * 100)}%`;
+
+        const consonantScore = (consonance.scores.consonant || 0) * 100;
+        const dissonantScore = (consonance.scores.dissonant || 0) * 100;
+
+        consonantBar.style.width = consonantScore + '%';
+        dissonantBar.style.width = dissonantScore + '%';
+        consonantValue.textContent = consonantScore.toFixed(1) + '%';
+        dissonantValue.textContent = dissonantScore.toFixed(1) + '%';
+
+        const predictionText = consonance.prediction === 'consonant'
+            ? 'Композиция звучит консонансно'
+            : 'Композиция звучит диссонансно';
+        consonanceLabel.textContent = predictionText;
+
+        document.getElementById('consonance-section').classList.remove('hidden');
+    } else if (data.consonance && !data.consonance.success) {
+        console.warn('Consonance classification failed:', data.consonance.error);
+        document.getElementById('consonance-section').classList.add('hidden');
+    }
+
     // Parameters
     const params = data.musical_params;
     elements.paramTempo.textContent = Math.round(params.tempo);
@@ -389,7 +426,24 @@ async function createExampleCard(example) {
                 <span class="metadata-icon">⏱️</span>
                 <span>~${example.duration_seconds}s</span>
             </div>
+            ${example.consonance ? `
+            <div class="metadata-item">
+                <span class="metadata-icon">${example.consonance.prediction === 'consonant' ? '🎵' : '🔊'}</span>
+                <span>${example.consonance.prediction.charAt(0).toUpperCase() + example.consonance.prediction.slice(1)}</span>
+            </div>
+            ` : ''}
         </div>
+
+        ${example.consonance ? `
+        <div class="example-consonance-badge">
+            <div class="consonance-prediction ${example.consonance.prediction}">
+                ${example.consonance.prediction.toUpperCase()}
+            </div>
+            <div class="consonance-confidence">
+                ${Math.round(example.consonance.confidence * 100)}%
+            </div>
+        </div>
+        ` : ''}
 
         <div class="example-actions">
             <a href="${midiUrl}" class="example-download-btn" download>

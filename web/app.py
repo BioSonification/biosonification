@@ -12,6 +12,7 @@ from flask import Flask, jsonify, render_template, request, send_file
 
 from .generator import FASTAValidationError, get_generator
 from .midi_to_audio import check_audio_synthesizer, get_install_instructions, midi_to_wav
+from .consonance_classifier import get_classifier
 
 # Project root
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -112,6 +113,29 @@ def generate():
             audio_available = True
 
         result["audio_available"] = audio_available
+
+        # Classify consonance using CRNN model
+        classifier = get_classifier()
+        if classifier.is_ready():
+            classification = classifier.classify(midi_path)
+            result["consonance"] = {
+                "success": classification["success"],
+                "prediction": classification["prediction"],
+                "confidence": classification["confidence"],
+                "scores": classification["scores"],
+            }
+            if not classification["success"]:
+                # Log error but don't fail the generation
+                app.logger.warning(f"Consonance classification failed: {classification['error']}")
+        else:
+            result["consonance"] = {
+                "success": False,
+                "prediction": None,
+                "confidence": None,
+                "scores": {},
+                "error": classifier.get_error(),
+            }
+
         result["success"] = True
 
         # Remove internal paths from response
@@ -156,6 +180,7 @@ def status():
     if not generator.is_ready() and generator.get_error() is None:
         generator.initialize()
     synth_status = check_audio_synthesizer()
+    classifier = get_classifier()
 
     return jsonify(
         {
@@ -164,6 +189,10 @@ def status():
             "generator": generator.status_payload(),
             "audio_synthesizers": synth_status,
             "audio_enabled": synth_status["midi2audio"] or synth_status["fluidsynth"] or synth_status["timidity"],
+            "consonance_classifier": {
+                "ready": classifier.is_ready(),
+                "error": classifier.get_error() if not classifier.is_ready() else None,
+            },
         }
     )
 
